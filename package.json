@@ -1,8 +1,9 @@
 {
   "name": "test",
+  "type": "module",
   "private": true,
   "scripts": {
-    "test": "mocha mocha -t 0 ./tests/"
+    "test": "mocha -t 0 ./tests/"
   },
   "devDependencies": {
     "lighthouse": "^11.4.0",

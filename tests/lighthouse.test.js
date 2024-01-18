@@ -5,15 +5,16 @@ import { cpus } from "os";
 import { launch } from 'puppeteer';
 
 
-describe("LH", () => {
+describe(import.meta.url.split("/").pop(), () => {
     afterEach(done => setTimeout(done, 5000))
     test("Qwik", async function () { await flows(this.test.title, 'https://qwiiik.web.app/') })
-    test("React", async function () { await flows(this.test.title, 'https://io-2imc05.web.app/'); })
+    test("React", async function () { await flows(this.test.title, 'https://io-2imc05.web.app/') })
+    after(() => { console.log(`[${time(new Date())}] Finished`) })
 })
 
 async function flows(name, url) {
     let cpu = usage()
-    console.log(`[${new Date().getHours()}:${new Date().getMinutes()}]`, name)
+    console.log(`[${time(new Date())}]`, name)
     const browser = await launch({ headless: 'new' })
     const page = await browser.newPage()
 
@@ -22,7 +23,12 @@ async function flows(name, url) {
             extends: 'lighthouse:default',
             settings: {
                 onlyCategories: ['performance'],
-                skipAudits: ['screenshot-thumbnails', 'final-screenshot', 'non-composited-animations'],
+                skipAudits: [
+                    'screenshot-thumbnails',
+                    'final-screenshot',
+                    'non-composited-animations',
+                    'cumulative-layout-shift'
+                ],
                 disableFullPageScreenshot: true,
                 skipAboutBlank: true,
                 usePassiveGathering: true
@@ -84,3 +90,8 @@ function usage(cpu) {
         })
     }
 }
+
+function time(date) {
+    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
