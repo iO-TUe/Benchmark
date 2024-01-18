@@ -1,0 +1,12 @@
+{
+  "name": "test",
+  "private": true,
+  "scripts": {
+    "test": "mocha mocha -t 0 ./tests/"
+  },
+  "devDependencies": {
+    "lighthouse": "^11.4.0",
+    "mocha": "^10.2.0",
+    "puppeteer": "^21.6.1"
+  }
+}
