@@ -1,21 +1,20 @@
 import { writeFileSync } from "fs";
 import { generateReport, startFlow } from 'lighthouse';
-import { afterEach, describe, test } from "mocha";
-import { cpus } from "os";
+import { spawnSync } from 'node:child_process';
 import { launch } from 'puppeteer';
+import { afterAll, beforeEach, test } from "vitest";
 
 
-describe(import.meta.url.split("/").pop(), () => {
-    afterEach(done => setTimeout(done, 5000))
-    test("Qwik", async function () { await flows(this.test.title, 'https://qwiiik.web.app/') })
-    test("React", async function () { await flows(this.test.title, 'https://io-2imc05.web.app/') })
-    after(() => { console.log(`[${time(new Date())}] Finished`) })
-})
+test("Qwik", async ({ task }) => { await flows(task.name, 'https://qwiiik.web.app/') })
+test("React", async ({ task }) => { await flows(task.name, 'https://io-2imc05.web.app/') })
+
+beforeEach(() => new Promise(done => setTimeout(done(), 5000)))
+
+afterAll(() => { console.log(`[${time(new Date())}] Finished`) })
 
 async function flows(name, url) {
-    let cpu = usage()
     console.log(`[${time(new Date())}]`, name)
-    const browser = await launch({ headless: 'new' })
+    const browser = await launch({ headless: false })
     const page = await browser.newPage()
 
     const flow = await startFlow(page, {
@@ -56,7 +55,7 @@ async function flows(name, url) {
     await page.waitForFunction('document.querySelector(".value").textContent === "95"', { timeout: 0 })
     await flow.endTimespan()
 
-    console.log('CPU load:', usage(cpu))
+    console.log('CPU load:', usage())
     // console.log('Generating report')
     let json = await flow.createFlowResult()
     writeFileSync(`./tmp/${name}.json`, JSON.stringify(json.steps
@@ -66,29 +65,9 @@ async function flows(name, url) {
     await browser.close()
 }
 
-function usage(cpu) {
-    if (cpu) {
-        let avg = ['------------------ AVERAGES ------------------', { user: 0, sys: 0, idle: 0, irq: 0 }]
-        return Object.entries(calcTotal(cpus())).map(([i, e]) => {
-            const diff = e.total - cpu[i].total
-            delete e.total
-            return Object.fromEntries(Object.entries(e).map(([j, t]) => {
-                let p = (((t - cpu[i][j]) / diff) * 100).toFixed(0)
-                avg[1][j] += p / 8
-                return [j, p + '%'];
-            }))
-        }).concat(avg)
-    } else {
-        return calcTotal(cpus())
-    }
-
-    function calcTotal(cpus) {
-        return cpus.map(({ times }) => {
-            delete times.nice
-            times.total = Object.values(times).reduce((v, s) => s + v);
-            return times
-        })
-    }
+function usage() {
+    let usage = spawnSync('tasklist', ['/fi', 'ImageName eq chrome.exe', '/fo', 'csv', '/v'], { encoding: 'utf-8' }).stdout
+    return usage.split('\n').map(s => s.split(',')).map(a => [a[1], a[4], a[7]])
 }
 
 function time(date) {

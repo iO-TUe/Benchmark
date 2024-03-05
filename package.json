@@ -3,11 +3,11 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "mocha -t 0 ./tests/"
+    "test": "vitest run ./tests/"
   },
   "devDependencies": {
     "lighthouse": "^11.4.0",
-    "mocha": "^10.2.0",
-    "puppeteer": "^21.6.1"
+    "puppeteer": "^21.6.1",
+    "vitest": "^1.3.1"
   }
 }
