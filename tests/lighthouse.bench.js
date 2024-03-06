@@ -1,11 +1,13 @@
-import { appendFileSync, mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
+import { appendFileSync, mkdirSync, rmSync, writeFileSync } from "fs";
 import { generateReport, startFlow } from 'lighthouse';
 import { spawnSync } from 'node:child_process';
 import { launch } from 'puppeteer';
 import { beforeAll, bench } from "vitest";
 
-bench("Qwik", async () => { await flows("Qwik", 'https://qwiiik.web.app/') }, { iterations: 5, warmupIterations: 0 })
-bench("React", async () => { await flows("React", 'https://io-2imc05.web.app/') }, { iterations: 5, warmupIterations: 0 })
+[ // Benchmark for every item in this list
+    { name: "React", url: "https://io-2imc05.web.app/" },
+    { name: "Qwik", url: "https://qwiiik.web.app/" }
+].forEach(({ name, url }) => bench(name, async () => await flows(name, url), { iterations: 5, warmupIterations: 0 }))
 
 beforeAll(() => {
     rmSync('./tmp', { recursive: true, force: true })
