@@ -4,10 +4,10 @@ import { spawnSync } from 'node:child_process';
 import { launch } from 'puppeteer';
 import { beforeAll, bench } from "vitest";
 
-[ // Benchmark for every item in this list
-    { name: "React", url: "https://io-2imc05.web.app/" },
-    { name: "Qwik", url: "https://qwiiik.web.app/" }
-].forEach(({ name, url }) => bench(name, async () => await flows(name, url), { iterations: 5, warmupIterations: 0 }))
+[ // TOOD: Extract this list as an common resource
+    ["React", "https://io-2imc05.web.app/"],
+    ["Qwik", "https://qwiiik.web.app/"],
+].forEach(([name, url]) => bench(name, async () => await flows(name, url), { iterations: 5, warmupIterations: 0 }))
 
 beforeAll(() => {
     rmSync('./tmp', { recursive: true, force: true })
@@ -57,11 +57,11 @@ async function flows(name, url) {
     await page.waitForFunction('document.querySelector(".value").textContent === "95"', { timeout: 0 })
     await flow.endTimespan()
 
+    // console.log("Get CPU usages")
     appendFileSync(`./tmp/${name}CPU.json`, JSON.stringify(usage()))
 
-    const now = new Date().getTime()
-    // console.log('Generating report')
-    let json = await flow.createFlowResult()
+    // console.log("Generating report")
+    const now = new Date().getTime(), json = await flow.createFlowResult()
     writeFileSync(`./tmp/${name + now}.json`, JSON.stringify(json.steps
         .reduce((acc, { lhr: { audits }, name }) => ({ ...acc, [name]: { ...audits } }), {}), null, '\t'))
     writeFileSync(`./tmp/${name + now}.html`, generateReport(json, 'html'))
