@@ -2,10 +2,10 @@ import { writeFileSync } from "fs";
 import { generateReport, startFlow } from 'lighthouse';
 import { spawnSync } from 'node:child_process';
 import { launch } from 'puppeteer';
-import { beforeAll, test } from "vitest";
+import { beforeAll, bench } from "vitest";
 
-test("React", async ({ task }) => { await flows(task.name, 'https://io-2imc05.web.app/') })
-test("Qwik", async ({ task }) => { await flows(task.name, 'https://qwiiik.web.app/') })
+bench("Qwik", async () => { await flows("Qwik", 'https://qwiiik.web.app/') }, { iterations: 3, warmupIterations: 0 })
+bench("React", async ({ task: { name } }) => { await flows("React", 'https://io-2imc05.web.app/') }, { iterations: 3, warmupIterations: 0 })
 
 beforeAll(() => spawnSync('taskkill', ['/fi', 'ImageName eq chrome.exe', '/F']))
 
@@ -51,7 +51,8 @@ async function flows(name, url) {
     await page.waitForFunction('document.querySelector(".value").textContent === "95"', { timeout: 0 })
     await flow.endTimespan()
 
-    console.log('CPU load:', name, usage())
+    let cpu = usage()
+
     // console.log('Generating report')
     let json = await flow.createFlowResult()
     writeFileSync(`./tmp/${name}.json`, JSON.stringify(json.steps
@@ -59,9 +60,14 @@ async function flows(name, url) {
     writeFileSync(`./tmp/${name}.html`, generateReport(json, 'html'))
 
     await browser.close()
+
+    return cpu
 }
 
 function usage() {
     let usage = spawnSync('tasklist', ['/fi', 'ImageName eq chrome.exe', '/fo', 'csv', '/v'], { encoding: 'utf-8' }).stdout
-    return usage.split('\n').map(s => s.split(',')).map(a => [a[1], a[4], a[7]])
+    return usage.split('\n').map(s => s.split(',')).map(a => [a[1], a[4], a[7]]).filter(([_, __, cpu]) => {
+        const split = cpu?.slice(1, -1).split(':')
+        return split && (split[0] > 0 || split[1] > 0 || split[2] > 10)
+    })
 }
