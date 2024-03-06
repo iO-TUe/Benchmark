@@ -7,11 +7,12 @@ import { beforeAll, bench } from "vitest";
 [ // TOOD: Extract this list as an common resource
     ["React", "https://io-2imc05.web.app/"],
     ["Qwik", "https://qwiiik.web.app/"],
-].forEach(([name, url]) => bench(name, async () => await flows(name, url), { iterations: 5, warmupIterations: 0 }))
+].forEach(([name, url]) => bench(name, async () => await flows(name, url)))
 
 beforeAll(() => {
     rmSync('./tmp', { recursive: true, force: true })
     mkdirSync('./tmp')
+    mkdirSync('./tmp/lighthouse')
     spawnSync('taskkill', ['/fi', 'ImageName eq chrome.exe', '/F']);
 })
 
@@ -58,20 +59,20 @@ async function flows(name, url) {
     await flow.endTimespan()
 
     // console.log("Get CPU usages")
-    appendFileSync(`./tmp/${name}CPU.json`, JSON.stringify(usage()))
+    usage().forEach(([pid, mem, cpu]) => appendFileSync(`./tmp/${name}CPU.csv`, `${pid};${mem};${cpu}\n`))
 
     // console.log("Generating report")
     const now = new Date().getTime(), json = await flow.createFlowResult()
-    writeFileSync(`./tmp/${name + now}.json`, JSON.stringify(json.steps
+    writeFileSync(`./tmp/lighthouse/${name + now}.json`, JSON.stringify(json.steps
         .reduce((acc, { lhr: { audits }, name }) => ({ ...acc, [name]: { ...audits } }), {}), null, '\t'))
-    writeFileSync(`./tmp/${name + now}.html`, generateReport(json, 'html'))
+    writeFileSync(`./tmp/lighthouse/${name + now}.html`, generateReport(json, 'html'))
 
     await browser.close()
 }
 
 function usage() {
     let usage = spawnSync('tasklist', ['/fi', 'ImageName eq chrome.exe', '/fo', 'csv', '/v'], { encoding: 'utf-8' }).stdout
-    return usage.split('\n').map(s => s.split(',')).map(a => [a[1], a[4], a[7]]).filter(([_, __, cpu]) => {
+    return usage.split('\n').map(s => s.replaceAll('"', '').split(',')).map(a => [a[1], a[4], a[7]]).filter(([_, __, cpu]) => {
         const split = cpu?.slice(1, -1).split(':')
         return split && (split[0] > 0 || split[1] > 0 || split[2] > 10)
     })
