@@ -1,16 +1,20 @@
-import { writeFileSync } from "fs";
+import { appendFileSync, mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
 import { generateReport, startFlow } from 'lighthouse';
 import { spawnSync } from 'node:child_process';
 import { launch } from 'puppeteer';
 import { beforeAll, bench } from "vitest";
 
-bench("Qwik", async () => { await flows("Qwik", 'https://qwiiik.web.app/') }, { iterations: 3, warmupIterations: 0 })
-bench("React", async ({ task: { name } }) => { await flows("React", 'https://io-2imc05.web.app/') }, { iterations: 3, warmupIterations: 0 })
+bench("Qwik", async () => { await flows("Qwik", 'https://qwiiik.web.app/') }, { iterations: 5, warmupIterations: 0 })
+bench("React", async () => { await flows("React", 'https://io-2imc05.web.app/') }, { iterations: 5, warmupIterations: 0 })
 
-beforeAll(() => spawnSync('taskkill', ['/fi', 'ImageName eq chrome.exe', '/F']))
+beforeAll(() => {
+    rmSync('./tmp', { recursive: true, force: true })
+    mkdirSync('./tmp')
+    spawnSync('taskkill', ['/fi', 'ImageName eq chrome.exe', '/F']);
+})
 
 async function flows(name, url) {
-    const browser = await launch({ headless: 'new' })
+    const browser = await launch({ headless: false })
     const page = await browser.newPage()
 
     const flow = await startFlow(page, {
@@ -51,17 +55,16 @@ async function flows(name, url) {
     await page.waitForFunction('document.querySelector(".value").textContent === "95"', { timeout: 0 })
     await flow.endTimespan()
 
-    let cpu = usage()
+    appendFileSync(`./tmp/${name}CPU.json`, JSON.stringify(usage()))
 
+    const now = new Date().getTime()
     // console.log('Generating report')
     let json = await flow.createFlowResult()
-    writeFileSync(`./tmp/${name}.json`, JSON.stringify(json.steps
+    writeFileSync(`./tmp/${name + now}.json`, JSON.stringify(json.steps
         .reduce((acc, { lhr: { audits }, name }) => ({ ...acc, [name]: { ...audits } }), {}), null, '\t'))
-    writeFileSync(`./tmp/${name}.html`, generateReport(json, 'html'))
+    writeFileSync(`./tmp/${name + now}.html`, generateReport(json, 'html'))
 
     await browser.close()
-
-    return cpu
 }
 
 function usage() {
