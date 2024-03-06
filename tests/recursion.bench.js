@@ -72,8 +72,8 @@ async function flows(name, url) {
 
 function usage() {
     let usage = spawnSync('tasklist', ['/fi', 'ImageName eq chrome.exe', '/fo', 'csv', '/v'], { encoding: 'utf-8' }).stdout
-    return usage.split('\n').map(s => s.replaceAll('"', '').split(',')).map(a => [a[1], a[4], a[7]]).filter(([_, __, cpu]) => {
-        const split = cpu?.slice(1, -1).split(':')
-        return split && (split[0] > 0 || split[1] > 0 || split[2] > 10)
+    return usage.split('\n').map(s => s.replaceAll('"', '').split(',')).map(a => [a[1], a[4], a[7]]).filter(a => {
+        const cpu = a[2]?.slice(1, -1).split(':')
+        return cpu && (cpu[0] > 0 || cpu[1] > 0 || cpu[2] > 10)
     })
 }
