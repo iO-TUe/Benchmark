@@ -78,7 +78,7 @@ async function flows(name, url) {
         .reduce((acc, { lhr: { audits }, name }) => ({ ...acc, [name]: { ...audits } }), {}), null, '\t'))
     writeFileSync(`./tmp/lighthouse/${name + now}.html`, generateReport(json, 'html'))
     runs[name].push(json.steps[0].lhr)
-    log(runs[name], json.steps[0].lhr)
+    console.log(runs[name], json.steps[0].lhr)
 
     await browser.close()
 }
