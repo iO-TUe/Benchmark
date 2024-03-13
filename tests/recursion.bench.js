@@ -12,7 +12,7 @@ const runs = {};
     ["Qwik", "https://qwiiik.web.app/"],
 ].forEach(([name, url]) => {
     runs[name] = [];
-    bench(name, async () => await flows(name, url), { iterations: 1, warmupIterations: 0 });
+    bench(name, async () => await flows(name, url), { iterations: 10, warmupIterations: 5 });
 })
 
 beforeAll(() => {
@@ -22,10 +22,11 @@ beforeAll(() => {
     spawnSync('taskkill', ['/fi', 'ImageName eq chrome.exe', '/F']);
 })
 
-afterAll(() => {
-    console.log(runs)
-    Object.values(runs).forEach(computeMedianRun)
-})
+afterAll(() => Object.entries(runs).forEach(([name, results]) => {
+    const lhr = results.map(flow => flow[0].lhr)
+    const median = computeMedianRun(lhr)
+    writeFileSync(`./tmp/${name}.json`, JSON.stringify(lhr.find(lh => lh === median), null, '\t'))
+}))
 
 async function flows(name, url) {
     const browser = await launch({ headless: 'new' })
@@ -70,15 +71,14 @@ async function flows(name, url) {
     await flow.endTimespan()
 
     // console.log("Get CPU usages")
-    usage().forEach(([pid, mem, cpu]) => appendFileSync(`./tmp/${name}CPU.csv`, `${pid};${mem};${cpu}\n`))
+    usage().forEach(([pid, mem, cpu]) => appendFileSync(`./tmp/${name}.csv`, `${pid};${mem};${cpu}\n`))
 
     // console.log("Generating report")
-    const now = new Date().getTime(), json = await flow.createFlowResult()
-    writeFileSync(`./tmp/lighthouse/${name + now}.json`, JSON.stringify(json.steps
+    const json = await flow.createFlowResult()
+    runs[name].push(json.steps)
+    writeFileSync(`./tmp/lighthouse/${name + runs[name].length}.json`, JSON.stringify(json.steps
         .reduce((acc, { lhr: { audits }, name }) => ({ ...acc, [name]: { ...audits } }), {}), null, '\t'))
-    writeFileSync(`./tmp/lighthouse/${name + now}.html`, generateReport(json, 'html'))
-    runs[name].push(json.steps[0].lhr)
-    console.log(runs[name], json.steps[0].lhr)
+    writeFileSync(`./tmp/lighthouse/${name + runs[name].length}.html`, generateReport(json, 'html'))
 
     await browser.close()
 }
@@ -89,4 +89,8 @@ function usage() {
         const cpu = a[2]?.slice(1, -1).split(':')
         return cpu && (cpu[0] > 0 || cpu[1] > 0 || cpu[2] > 10)
     })
+}
+
+async function browser() {
+    return await launch({ headless: 'new' })
 }
