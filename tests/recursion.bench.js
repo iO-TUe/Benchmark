@@ -1,19 +1,30 @@
 import { appendFileSync, mkdirSync, rmSync, writeFileSync } from "fs";
 import { generateReport, startFlow } from 'lighthouse';
+import { computeMedianRun } from "lighthouse/core/lib/median-run";
 import { spawnSync } from 'node:child_process';
 import { launch } from 'puppeteer';
-import { beforeAll, bench } from "vitest";
+import { afterAll, beforeAll, bench } from "vitest";
+
+const runs = {};
 
 [ // TOOD: Extract this list as an common resource
     ["React", "https://io-2imc05.web.app/"],
     ["Qwik", "https://qwiiik.web.app/"],
-].forEach(([name, url]) => bench(name, async () => await flows(name, url)))
+].forEach(([name, url]) => {
+    runs[name] = [];
+    bench(name, async () => await flows(name, url), { iterations: 1, warmupIterations: 0 });
+})
 
 beforeAll(() => {
     rmSync('./tmp', { recursive: true, force: true })
     mkdirSync('./tmp')
     mkdirSync('./tmp/lighthouse')
     spawnSync('taskkill', ['/fi', 'ImageName eq chrome.exe', '/F']);
+})
+
+afterAll(() => {
+    console.log(runs)
+    Object.values(runs).forEach(computeMedianRun)
 })
 
 async function flows(name, url) {
@@ -66,6 +77,8 @@ async function flows(name, url) {
     writeFileSync(`./tmp/lighthouse/${name + now}.json`, JSON.stringify(json.steps
         .reduce((acc, { lhr: { audits }, name }) => ({ ...acc, [name]: { ...audits } }), {}), null, '\t'))
     writeFileSync(`./tmp/lighthouse/${name + now}.html`, generateReport(json, 'html'))
+    runs[name].push(json.steps[0].lhr)
+    log(runs[name], json.steps[0].lhr)
 
     await browser.close()
 }

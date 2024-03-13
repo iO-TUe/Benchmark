@@ -3,7 +3,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "vitest bench --run ./tests/"
+    "test": "vitest bench --run --reporter=json --outputFile=tmp/bench.json ./tests/"
   },
   "devDependencies": {
     "lighthouse": "^11.4.0",
