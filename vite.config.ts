@@ -2,6 +2,8 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
     test: {
+        reporters: ["json"],
+        outputFile: "./tmp/bench.json",
         testTimeout: 0,
         maxConcurrency: 1,
         poolOptions: {
@@ -10,7 +12,7 @@ export default defineConfig({
             }
         },
         silent: false,
-        // disableConsoleIntercept: true,
+        disableConsoleIntercept: true,
         logHeapUsage: true
     },
 })

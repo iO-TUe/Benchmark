@@ -5,15 +5,15 @@ import { spawnSync } from 'node:child_process';
 import { launch } from 'puppeteer';
 import { afterAll, beforeAll, bench } from "vitest";
 
-const runs = {};
+const runs = {},
+    iterations = 1,
+    warmupIterations = 1;
 
 [ // TOOD: Extract this list as an common resource
     ["React", "https://io-2imc05.web.app/"],
     ["Qwik", "https://qwiiik.web.app/"],
-].forEach(([name, url]) => {
-    runs[name] = [];
-    bench(name, async () => await flows(name, url), { iterations: 10, warmupIterations: 5 });
-})
+].forEach(([name, url]) => bench(name, async () => await flows(name, url),
+    { iterations, warmupIterations, time: 0, warmupTime: 0 }))
 
 beforeAll(() => {
     rmSync('./tmp', { recursive: true, force: true })
@@ -23,12 +23,20 @@ beforeAll(() => {
 })
 
 afterAll(() => Object.entries(runs).forEach(([name, results]) => {
-    const lhr = results.map(flow => flow[0].lhr)
+    const lhr = results.splice(warmupIterations).map(flow => flow[0].lhr)
     const median = computeMedianRun(lhr)
-    writeFileSync(`./tmp/${name}.json`, JSON.stringify(lhr.find(lh => lh === median), null, '\t'))
+    const index = lhr.indexOf(median)
+    writeFileSync(`./tmp/${name}LHR.json`, JSON.stringify(results[index], null, '\t'))
+
+    console.log(index)
+    // const cpu = readFileSync(`./tmp/${name}.csv`)
+
+    // cpu.split('\n').forEach(line => line.split(';'))
 }))
 
 async function flows(name, url) {
+    const iter = runs[name] ? runs[name].length : +(runs[name] = [])
+
     const browser = await launch({ headless: 'new' })
     const page = await browser.newPage()
 
@@ -71,14 +79,14 @@ async function flows(name, url) {
     await flow.endTimespan()
 
     // console.log("Get CPU usages")
-    usage().forEach(([pid, mem, cpu]) => appendFileSync(`./tmp/${name}.csv`, `${pid};${mem};${cpu}\n`))
+    usage().forEach(([pid, mem, cpu]) => appendFileSync(`./tmp/${name}CPU.csv`, `${pid};${mem};${cpu};${iter}\n`))
 
     // console.log("Generating report")
     const json = await flow.createFlowResult()
-    runs[name].push(json.steps)
-    writeFileSync(`./tmp/lighthouse/${name + runs[name].length}.json`, JSON.stringify(json.steps
+    writeFileSync(`./tmp/lighthouse/${name + iter}.json`, JSON.stringify(json.steps
         .reduce((acc, { lhr: { audits }, name }) => ({ ...acc, [name]: { ...audits } }), {}), null, '\t'))
-    writeFileSync(`./tmp/lighthouse/${name + runs[name].length}.html`, generateReport(json, 'html'))
+    writeFileSync(`./tmp/lighthouse/${name + iter}.html`, generateReport(json, 'html'))
+    runs[name].push(json.steps)
 
     await browser.close()
 }
@@ -89,8 +97,4 @@ function usage() {
         const cpu = a[2]?.slice(1, -1).split(':')
         return cpu && (cpu[0] > 0 || cpu[1] > 0 || cpu[2] > 10)
     })
-}
-
-async function browser() {
-    return await launch({ headless: 'new' })
 }
