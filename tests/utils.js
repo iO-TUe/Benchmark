@@ -15,7 +15,8 @@ const iterations = 10,
  * 
  * Before the benchmark, the tmp dir is cleared and all chrome processes are closed.
  * 
- * @param {*} fn The benchmark function
+ * @param {Function} fn The benchmark function.
+ * @param {boolean} dry Use results of the last benchmark instead of running a new one.
  */
 function setup(fn, dry = false) {
     implementations.forEach(([name, url]) =>

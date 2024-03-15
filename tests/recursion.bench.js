@@ -1,19 +1,19 @@
 import { appendFileSync, writeFileSync } from 'fs';
-import { startFlow } from 'lighthouse';
+import { generateReport, startFlow } from 'lighthouse';
 import { computeMedianRun } from 'lighthouse/core/lib/median-run';
 import { spawnSync } from 'node:child_process';
 import { launch } from 'puppeteer';
 import { afterAll } from "vitest";
 import { runs, setup, warmupIterations as wi } from './utils';
 
-setup(flows, true)
+setup(flows)
 
 afterAll(() => Object.entries(runs).forEach(([name, results]) => {
     const lhr = results.slice(wi).map(flow => flow[0].lhr)
     const median = computeMedianRun(lhr)
     const index = lhr.indexOf(median)
 
-    console.log(index)
+    console.log('Median run:', name, index + wi)
 
     writeFileSync(`./tmp/${name}LHR.json`, JSON.stringify(results[index + wi], null, '\t'))
 
@@ -67,25 +67,25 @@ async function flows(name, url) {
     const iter = runs[name].length
 
     // console.log("Get CPU usages")
-    if (iter === 0) writeFileSync(`./tmp/${name}CPU.csv`, 'PID;Mem. usage;CPU time;i\n')
+    if (iter === 0) writeFileSync(`./tmp/${name}CPU.csv`, 'PID;Mem Usage;CPU Time;i\n')
     usage().forEach(([pid, mem, cpu]) => appendFileSync(`./tmp/${name}CPU.csv`, `${pid};${mem};${cpu};${iter}\n`))
 
     // console.log("Generating reports")
     const json = await flow.createFlowResult()
-    writeFileSync(`./tmp/lighthouse/${name + iter}.json`, JSON.stringify(json.steps
-        /*.reduce((acc, { lhr: { audits }, name }) => ({ ...acc, [name]: { ...audits } }), {})*/, null, '\t'))
-    // writeFileSync(`./tmp/lighthouse/${name + runs.length}.html`, generateReport(json, 'html'))
+    writeFileSync(`./tmp/lighthouse/${name + iter}.json`, JSON.stringify(json.steps, null, '\t'))
+    writeFileSync(`./tmp/lighthouse/${name + iter}.html`, generateReport(json, 'html'))
     runs[name].push(json.steps)
 
     await browser.close()
 }
 
 /**
- * Uses Tasklist to retrieve all chrome.exe processes that have used at least 10s of CPU time.
+ * Use Tasklist to retrieve all chrome.exe processes that have used at least 10s of CPU time.
  * 
  * @returns {string[][]} Tuples of PID, Mem. usage and CPU time.
  */
 function usage() {
     let usage = spawnSync('tasklist', ['/fi', 'ImageName eq chrome.exe', '/fi', 'CPUTime gt 00:00:10', '/fo', 'csv', '/v'], { encoding: 'utf-8' }).stdout
-    return usage.split('\n').slice(1, -1).map(s => s.replaceAll('"', '').split(',')).map(a => [a[1], a[4], a[7]])
+    console.log(usage)
+    return usage.split('\n').map(s => s.replaceAll('"', '').split(',')).map(a => [a[1], a[4], a[7]])
 }
