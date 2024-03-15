@@ -1,42 +1,28 @@
-import { appendFileSync, mkdirSync, rmSync, writeFileSync } from "fs";
-import { generateReport, startFlow } from 'lighthouse';
+import { appendFileSync, writeFileSync } from "fs";
+import { startFlow } from 'lighthouse';
 import { computeMedianRun } from "lighthouse/core/lib/median-run";
 import { spawnSync } from 'node:child_process';
 import { launch } from 'puppeteer';
-import { afterAll, beforeAll, bench } from "vitest";
+import { afterAll, beforeEach } from "vitest";
+import { runs, setup, warmupIterations as wi } from './utils';
 
-const runs = {},
-    iterations = 1,
-    warmupIterations = 1;
-
-[ // TOOD: Extract this list as an common resource
-    ["React", "https://io-2imc05.web.app/"],
-    ["Qwik", "https://qwiiik.web.app/"],
-].forEach(([name, url]) => bench(name, async () => await flows(name, url),
-    { iterations, warmupIterations, time: 0, warmupTime: 0 }))
-
-beforeAll(() => {
-    rmSync('./tmp', { recursive: true, force: true })
-    mkdirSync('./tmp')
-    mkdirSync('./tmp/lighthouse')
-    spawnSync('taskkill', ['/fi', 'ImageName eq chrome.exe', '/F']);
-})
+setup(flows)
 
 afterAll(() => Object.entries(runs).forEach(([name, results]) => {
-    const lhr = results.splice(warmupIterations).map(flow => flow[0].lhr)
+    const lhr = results.slice(wi).map(flow => flow[0].lhr)
     const median = computeMedianRun(lhr)
     const index = lhr.indexOf(median)
-    writeFileSync(`./tmp/${name}LHR.json`, JSON.stringify(results[index], null, '\t'))
 
-    console.log(index)
+    console.log(index, results)
+
+    writeFileSync(`./tmp/${name}LHR.json`, JSON.stringify(results[index + wi], null, '\t'))
+
     // const cpu = readFileSync(`./tmp/${name}.csv`)
 
     // cpu.split('\n').forEach(line => line.split(';'))
 }))
 
 async function flows(name, url) {
-    const iter = runs[name] ? runs[name].length : +(runs[name] = [])
-
     const browser = await launch({ headless: 'new' })
     const page = await browser.newPage()
 
@@ -78,23 +64,26 @@ async function flows(name, url) {
     await page.waitForFunction('document.querySelector(".value").textContent === "95"', { timeout: 0 })
     await flow.endTimespan()
 
+    const iter = runs[name].length
     // console.log("Get CPU usages")
     usage().forEach(([pid, mem, cpu]) => appendFileSync(`./tmp/${name}CPU.csv`, `${pid};${mem};${cpu};${iter}\n`))
 
     // console.log("Generating report")
     const json = await flow.createFlowResult()
     writeFileSync(`./tmp/lighthouse/${name + iter}.json`, JSON.stringify(json.steps
-        .reduce((acc, { lhr: { audits }, name }) => ({ ...acc, [name]: { ...audits } }), {}), null, '\t'))
-    writeFileSync(`./tmp/lighthouse/${name + iter}.html`, generateReport(json, 'html'))
+        /*.reduce((acc, { lhr: { audits }, name }) => ({ ...acc, [name]: { ...audits } }), {})*/, null, '\t'))
+    // writeFileSync(`./tmp/lighthouse/${name + runs.length}.html`, generateReport(json, 'html'))
     runs[name].push(json.steps)
 
     await browser.close()
 }
 
+/**
+ * Uses Tasklist to retrieve all chrome.exe processes that have used at least 10s of CPU time.
+ * 
+ * @returns {string[][]} Tuples of PID, Mem. usage and CPU time.
+ */
 function usage() {
-    let usage = spawnSync('tasklist', ['/fi', 'ImageName eq chrome.exe', '/fo', 'csv', '/v'], { encoding: 'utf-8' }).stdout
-    return usage.split('\n').map(s => s.replaceAll('"', '').split(',')).map(a => [a[1], a[4], a[7]]).filter(a => {
-        const cpu = a[2]?.slice(1, -1).split(':')
-        return cpu && (cpu[0] > 0 || cpu[1] > 0 || cpu[2] > 10)
-    })
+    let usage = spawnSync('tasklist', ['/fi', 'ImageName eq chrome.exe', '/fi', 'CPUTime gt 00:00:10', '/fo', 'csv', '/v'], { encoding: 'utf-8' }).stdout
+    return usage.split('\n').slice(1, -1).map(s => s.replaceAll('"', '').split(',')).map(a => [a[1], a[4], a[7]])
 }

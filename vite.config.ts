@@ -12,7 +12,7 @@ export default defineConfig({
             }
         },
         silent: false,
-        disableConsoleIntercept: true,
+        // disableConsoleIntercept: true,
         logHeapUsage: true
     },
 })
