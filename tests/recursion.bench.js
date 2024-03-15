@@ -1,19 +1,19 @@
-import { appendFileSync, writeFileSync } from "fs";
+import { appendFileSync, writeFileSync } from 'fs';
 import { startFlow } from 'lighthouse';
-import { computeMedianRun } from "lighthouse/core/lib/median-run";
+import { computeMedianRun } from 'lighthouse/core/lib/median-run';
 import { spawnSync } from 'node:child_process';
 import { launch } from 'puppeteer';
-import { afterAll, beforeEach } from "vitest";
+import { afterAll } from "vitest";
 import { runs, setup, warmupIterations as wi } from './utils';
 
-setup(flows)
+setup(flows, true)
 
 afterAll(() => Object.entries(runs).forEach(([name, results]) => {
     const lhr = results.slice(wi).map(flow => flow[0].lhr)
     const median = computeMedianRun(lhr)
     const index = lhr.indexOf(median)
 
-    console.log(index, results)
+    console.log(index)
 
     writeFileSync(`./tmp/${name}LHR.json`, JSON.stringify(results[index + wi], null, '\t'))
 
@@ -65,10 +65,12 @@ async function flows(name, url) {
     await flow.endTimespan()
 
     const iter = runs[name].length
+
     // console.log("Get CPU usages")
+    if (iter === 0) writeFileSync(`./tmp/${name}CPU.csv`, 'PID;Mem. usage;CPU time;i\n')
     usage().forEach(([pid, mem, cpu]) => appendFileSync(`./tmp/${name}CPU.csv`, `${pid};${mem};${cpu};${iter}\n`))
 
-    // console.log("Generating report")
+    // console.log("Generating reports")
     const json = await flow.createFlowResult()
     writeFileSync(`./tmp/lighthouse/${name + iter}.json`, JSON.stringify(json.steps
         /*.reduce((acc, { lhr: { audits }, name }) => ({ ...acc, [name]: { ...audits } }), {})*/, null, '\t'))

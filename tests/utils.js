@@ -1,4 +1,4 @@
-import { mkdirSync, rmSync } from "fs";
+import { mkdirSync, readFileSync, readdirSync, rmSync } from "fs";
 import { spawnSync } from 'node:child_process';
 import { beforeAll, bench } from "vitest";
 
@@ -17,16 +17,24 @@ const iterations = 10,
  * 
  * @param {*} fn The benchmark function
  */
-function setup(fn) {
+function setup(fn, dry = false) {
     implementations.forEach(([name, url]) =>
-        bench(name, async () => await fn(name, url), { iterations, warmupIterations }))
+        bench(name, async () => dry || await fn(name, url), { iterations, warmupIterations }))
 
-    beforeAll(() => {
-        rmSync('./tmp', { recursive: true, force: true })
-        mkdirSync('./tmp')
-        mkdirSync('./tmp/lighthouse')
-        spawnSync('taskkill', ['/fi', 'ImageName eq chrome.exe', '/F']);
-    })
+    if (dry) { // Load results of previous test run
+        beforeAll(() => readdirSync('./tmp/lighthouse').forEach(file => {
+            let d = file.search(/\d/);
+            runs[file.slice(0, d)][file.slice(d, file.search(/\./))] =
+                (JSON.parse(readFileSync(`./tmp/lighthouse/${file}`)));
+        }))
+    } else { // Perform new benchmark run
+        beforeAll(() => {
+            rmSync('./tmp', { recursive: true, force: true })
+            mkdirSync('./tmp')
+            mkdirSync('./tmp/lighthouse')
+            spawnSync('taskkill', ['/fi', 'ImageName eq chrome.exe', '/F']);
+        })
+    }
 }
 
 export { iterations, runs, setup, warmupIterations };
