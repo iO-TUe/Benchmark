@@ -25,9 +25,11 @@ function setup(fn, dry = false) {
 
     if (dry) { // Load results of previous test run
         beforeAll(() => readdirSync('./tmp/lighthouse').forEach(file => {
-            let d = file.search(/\d/);
-            runs[file.slice(0, d)][file.slice(d, file.search(/\./))] =
-                (JSON.parse(readFileSync(`./tmp/lighthouse/${file}`)));
+            if (file.endsWith('.json')) {
+                let d = file.search(/\d/);
+                runs[file.slice(0, d)][file.slice(d, file.search(/\./))] =
+                    (JSON.parse(readFileSync(`./tmp/lighthouse/${file}`)));
+            }
         }))
     } else { // Perform new benchmark run
         beforeAll(() => {
