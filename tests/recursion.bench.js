@@ -85,7 +85,10 @@ async function flows(name, url) {
  * @returns {string[][]} Tuples of PID, Mem. usage and CPU time.
  */
 function usage() {
-    let usage = spawnSync('tasklist', ['/fi', 'ImageName eq chrome.exe', '/fi', 'CPUTime gt 00:00:10', '/fo', 'csv', '/v'], { encoding: 'utf-8' }).stdout
+    const usage = spawnSync('tasklist', ['/fo', 'csv', '/v',
+        '/fi', 'ImageName eq chrome.exe',
+        '/fi', 'CPUTime gt 00:00:10',
+        '/fi', 'Status eq unknown'], { encoding: 'utf-8' }).stdout
     console.log(usage)
     return usage.split('\n').map(s => s.replaceAll('"', '').split(',')).map(a => [a[1], a[4], a[7]])
 }
