@@ -44,3 +44,4 @@ lerna-debug.log*
 /playwright/.cache/
 
 tmp
+archive
