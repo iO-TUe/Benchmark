@@ -5,7 +5,7 @@ import { PredefinedNetworkConditions, launch } from 'puppeteer';
 import { afterAll } from "vitest";
 import { computeMedianUsage, runs, setup, usage, warmupIterations as wi } from './utils';
 
-setup(flows, true)
+setup(flows)
 
 afterAll(() => Object.entries(runs).forEach(([name, results]) => {
     const lhr = results.slice(wi).map(flow => flow[0].lhr)
@@ -17,8 +17,7 @@ afterAll(() => Object.entries(runs).forEach(([name, results]) => {
         { encoding: 'utf-8' }).split('\n').slice(1 + wi, -1)
     const medianUsage = computeMedianUsage(usage)
     console.log('Median usage:', name, wi + usage.findIndex(s => {
-        const split = s.split(';')
-        const mCPU = split[2].split(':').reduce((t, s, i, a) =>
+        const mCPU = s.split(';')[2].split(':').reduce((t, s, i, a) =>
             t += i + 1 < a.length ? s * 60 : +s, 0)
         const mMem = +s.split(';')[1].replace(' K', '')
         return mCPU === medianUsage[0] && mMem === medianUsage[1]
@@ -28,8 +27,9 @@ afterAll(() => Object.entries(runs).forEach(([name, results]) => {
 }))
 
 async function flows(name, url) {
-    const page = await launch({ headless: 'new' }).newPage()
-    await page.emulateCPUThrottling(2)
+    const browser = await launch({ headless: 'new' })
+    const page = await browser.newPage()
+    await page.emulateCPUThrottling(5)
     await page.emulateNetworkConditions(PredefinedNetworkConditions['Fast 3G'])
 
     const flow = await startFlow(page, {
@@ -61,7 +61,7 @@ async function flows(name, url) {
     // console.log("Recurse")
     await flow.startTimespan({ name: 'Recurse' })
     await page.click('[role=insertion]')
-    await page.waitForTimeout(3000)
+    await page.waitForTimeout(1000)
     await flow.endTimespan()
 
     // console.log("AfterRecurse")
@@ -82,6 +82,6 @@ async function flows(name, url) {
     writeFileSync(`./tmp/lighthouse/${name + iter}.html`, generateReport(json, 'html'))
     runs[name].push(json.steps)
 
-    await page.browser.close()
+    await browser.close()
 }
 
