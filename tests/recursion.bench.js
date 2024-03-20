@@ -1,11 +1,11 @@
 import { appendFileSync, readFileSync, writeFileSync } from 'fs';
 import { generateReport, startFlow } from 'lighthouse';
 import { computeMedianRun } from 'lighthouse/core/lib/median-run';
-import { launch, PredefinedNetworkConditions } from 'puppeteer';
+import { PredefinedNetworkConditions, launch } from 'puppeteer';
 import { afterAll } from "vitest";
-import { runs, setup, warmupIterations as wi, computeMedianCPU, usage } from './utils';
+import { computeMedianUsage, runs, setup, usage, warmupIterations as wi } from './utils';
 
-setup(flows)
+setup(flows, true)
 
 afterAll(() => Object.entries(runs).forEach(([name, results]) => {
     const lhr = results.slice(wi).map(flow => flow[0].lhr)
@@ -13,10 +13,16 @@ afterAll(() => Object.entries(runs).forEach(([name, results]) => {
     const index = lhr.indexOf(medianRun)
     console.log('Median run:', name, index + wi)
 
-    const cpu = readFileSync(`./tmp/${name}CPU.csv`,
+    const usage = readFileSync(`./tmp/${name}CPU.csv`,
         { encoding: 'utf-8' }).split('\n').slice(1 + wi, -1)
-    const medianCpu = computeMedianCPU(cpu)
-    console.log('Median CPU:', name, medianCpu)
+    const medianUsage = computeMedianUsage(usage)
+    console.log('Median usage:', name, wi + usage.findIndex(s => {
+        const split = s.split(';')
+        const mCPU = split[2].split(':').reduce((t, s, i, a) =>
+            t += i + 1 < a.length ? s * 60 : +s, 0)
+        const mMem = +s.split(';')[1].replace(' K', '')
+        return mCPU === medianUsage[0] && mMem === medianUsage[1]
+    }))
 
     writeFileSync(`./tmp/${name}LHR.json`, JSON.stringify(results[index + wi], null, '\t'))
 }))

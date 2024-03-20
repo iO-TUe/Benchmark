@@ -65,7 +65,7 @@ function usage() {
  * @param {Array<string>} usage CSV output of {@link usage()}
  * @returns {[number, number]} The median CPU and memory usage pair
  */
-function computeMedianCPU(usage) {
+function computeMedianUsage(usage) {
     const cpuMem = usage.map(s => [
         s.split(';')[2].split(':').reduce((t, s, i, a) =>
             t += i + 1 < a.length ? s * 60 : +s, 0),
@@ -107,5 +107,5 @@ function computeMedianDistance(cpu, medianCpu, medianMem) {
 }
 
 
-export { computeMedianCPU, iterations, runs, setup, usage, warmupIterations };
+export { computeMedianUsage, iterations, runs, setup, usage, warmupIterations };
 
