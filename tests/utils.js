@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, readdirSync, rmSync } from "fs";
 import { spawnSync } from 'node:child_process';
 import { beforeAll, bench } from "vitest";
 
-const iterations = 10
+const iterations = 30
 const warmupIterations = 5
 const implementations = [
     ['React', 'https://io-2imc05.web.app/'],
@@ -51,12 +51,13 @@ function setup(fn, dry = false) {
 function usage() {
     return spawnSync('tasklist', ['/fo', 'csv', '/v',
         '/fi', 'ImageName eq chrome.exe',
-        '/fi', 'CPUTime gt 00:00:10',
         '/fi', 'Status eq unknown'
     ], { encoding: 'utf-8' }).stdout.split('\n').slice(1, -1)
-        .map(s => s.replaceAll('"', '').split(',')).map(a => [a[1], a[4], a[7]])
+        .map(s => s.replaceAll('"', '').split(','))
+        .map(a => [a[1], a[4], a[7].split(':')
+            .reduce((t, s, i, a) => t += i + 1 < a.length ? s * 60 : +s, 0)])
+        .filter(a => a[2] > 10)
 }
-
 
 /**
  * Calculate the run closest to the median of CPU Time and Memory Usage. 
@@ -66,11 +67,7 @@ function usage() {
  * @returns {[number, number]} The median CPU and memory usage pair
  */
 function computeMedianUsage(usage) {
-    const cpuMem = usage.map(s => [
-        s.split(';')[2].split(':').reduce((t, s, i, a) =>
-            t += i + 1 < a.length ? s * 60 : +s, 0),
-        +s.split(';')[1].replace(' K', '')
-    ])
+    const cpuMem = usage.map(s => [s.split(';')[2], +s.split(';')[1].replace(' K', '')])
     const medianCpu = median(cpuMem.map(t => t[0]))
     const medianMem = median(cpuMem.map(t => t[1]))
     return cpuMem.sort((a, b) => computeMedianDistance(a, medianCpu, medianMem) -

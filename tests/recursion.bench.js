@@ -15,13 +15,10 @@ afterAll(() => Object.entries(runs).forEach(([name, results]) => {
 
     const usage = readFileSync(`./tmp/${name}CPU.csv`,
         { encoding: 'utf-8' }).split('\n').slice(1 + wi, -1)
-    const medianUsage = computeMedianUsage(usage)
-    console.log('Median usage:', name, wi + usage.findIndex(s => {
-        const mCPU = s.split(';')[2].split(':').reduce((t, s, i, a) =>
-            t += i + 1 < a.length ? s * 60 : +s, 0)
-        const mMem = +s.split(';')[1].replace(' K', '')
-        return mCPU === medianUsage[0] && mMem === medianUsage[1]
-    }))
+    const [mCpu, mMem] = computeMedianUsage(usage)
+    console.log('Median usage:', name, wi + usage.findIndex(s =>
+        s.split(';')[2] === mCpu && +s.split(';')[1].replace(' K', '') === mMem
+    ))
 
     writeFileSync(`./tmp/${name}LHR.json`, JSON.stringify(results[index + wi], null, '\t'))
 }))
@@ -73,7 +70,7 @@ async function flows(name, url) {
     const iter = runs[name].length
 
     // console.log("Get CPU usages")
-    if (iter === 0) writeFileSync(`./tmp/${name}CPU.csv`, 'PID;Mem Usage;CPU Time;i\n')
+    if (iter === 0) writeFileSync(`./tmp/${name}CPU.csv`, 'PID;Memory;CPU;i\n')
     usage().forEach(([pid, mem, cpu]) => appendFileSync(`./tmp/${name}CPU.csv`, `${pid};${mem};${cpu};${iter}\n`))
 
     // console.log("Generating reports")
