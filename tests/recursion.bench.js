@@ -10,17 +10,19 @@ setup(flows)
 afterAll(() => Object.entries(runs).forEach(([name, results]) => {
     const lhr = results.slice(wi).map(flow => flow[0].lhr)
     const medianRun = computeMedianRun(lhr)
-    const index = lhr.indexOf(medianRun)
-    console.log('Median run:', name, index + wi)
+    const iLHR = wi + lhr.indexOf(medianRun)
+    // console.log('Median run:', name, iLHR + wi)
 
     const usage = readFileSync(`./tmp/${name}CPU.csv`,
         { encoding: 'utf-8' }).split('\n').slice(1 + wi, -1)
     const [mCpu, mMem] = computeMedianUsage(usage)
-    console.log('Median usage:', name, wi + usage.findIndex(s =>
+    const iUSE = wi + usage.findIndex(s =>
         s.split(';')[2] === mCpu && +s.split(';')[1].replace(' K', '') === mMem
-    ))
+    )
+    // console.log('Median usage:', name, iUSE)
 
-    writeFileSync(`./tmp/${name}LHR.json`, JSON.stringify(results[index + wi], null, '\t'))
+    appendFileSync(`./tmp/${name}CPU.csv`, `Median run: ${iUSE}`)
+    writeFileSync(`./tmp/${name}LHR - [${iLHR}].json`, JSON.stringify(results[iLHR], null, '\t'))
 }))
 
 async function flows(name, url) {
@@ -52,19 +54,19 @@ async function flows(name, url) {
     // console.log("BeforeRecurse")
     await flow.startTimespan({ name: 'BeforeRecurse' })
     await page.$('button[aria-label=add').then(el => el && el.click())
-    await page.waitForFunction('document.querySelector(".value").textContent === "96"')
+    await page.waitForFunction('document.querySelector("[class*=value]").textContent === "96"')
     await flow.endTimespan()
 
     // console.log("Recurse")
     await flow.startTimespan({ name: 'Recurse' })
-    await page.click('[role=insertion]')
+    await page.click('[role=feed]')
     await page.waitForTimeout(1000)
     await flow.endTimespan()
 
     // console.log("AfterRecurse")
     await flow.startTimespan({ name: 'AfterRecurse' })
     await page.$('button[aria-label=sub').then(el => el && el.click(), { timeout: 0 })
-    await page.waitForFunction('document.querySelector(".value").textContent === "95"', { timeout: 0 })
+    await page.waitForFunction('document.querySelector("[class*=value]").textContent === "95"', { timeout: 0 })
     await flow.endTimespan()
 
     const iter = runs[name].length
