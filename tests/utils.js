@@ -2,11 +2,12 @@ import { mkdirSync, readFileSync, readdirSync, rmSync } from "fs";
 import { spawnSync } from 'node:child_process';
 import { beforeAll, bench } from "vitest";
 
-const iterations = 30
+const iterations = 10
 const warmupIterations = 5
 const implementations = [
     ['React', 'https://io-2imc05.web.app/'],
     ['Qwik', 'https://qwiiik.web.app/'],
+    ['Solid', 'https://io-tue.web.app/'],
 ], runs = Object.fromEntries(implementations.map(([$]) => [$, []]))
 
 /**

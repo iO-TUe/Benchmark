@@ -1,35 +1,33 @@
-import { appendFileSync, readFileSync, writeFileSync } from 'fs';
+import { appendFileSync, readFileSync, renameSync, writeFileSync } from 'fs';
 import { generateReport, startFlow } from 'lighthouse';
 import { computeMedianRun } from 'lighthouse/core/lib/median-run';
-import { PredefinedNetworkConditions, launch } from 'puppeteer';
+import { launch } from 'puppeteer';
 import { afterAll } from "vitest";
 import { computeMedianUsage, runs, setup, usage, warmupIterations as wi } from './utils';
 
 setup(flows)
 
 afterAll(() => Object.entries(runs).forEach(([name, results]) => {
-    const lhr = results.slice(wi).map(flow => flow[0].lhr)
-    const medianRun = computeMedianRun(lhr)
-    const iLHR = wi + lhr.indexOf(medianRun)
+    let lhr = results.slice(wi).map(flow => flow[0].lhr)
+    lhr = wi + lhr.indexOf(computeMedianRun(lhr))
     // console.log('Median run:', name, iLHR + wi)
 
-    const usage = readFileSync(`./tmp/${name}CPU.csv`,
+    let usage = readFileSync(`./tmp/${name}CPU.csv`,
         { encoding: 'utf-8' }).split('\n').slice(1 + wi, -1)
     const [mCpu, mMem] = computeMedianUsage(usage)
-    const iUSE = wi + usage.findIndex(s =>
+    usage = wi + usage.findIndex(s =>
         s.split(';')[2] === mCpu && +s.split(';')[1].replace(' K', '') === mMem
     )
     // console.log('Median usage:', name, iUSE)
-
-    appendFileSync(`./tmp/${name}CPU.csv`, `Median run: ${iUSE}`)
-    writeFileSync(`./tmp/${name}LHR - [${iLHR}].json`, JSON.stringify(results[iLHR], null, '\t'))
+    renameSync(`./tmp/${name}CPU.csv`, `./tmp/${name}CPU - [${usage}].csv`)
+    writeFileSync(`./tmp/${name}LHR - [${lhr}].json`, JSON.stringify(results[lhr], null, '\t'))
 }))
 
 async function flows(name, url) {
-    const browser = await launch({ headless: 'new' })
+    const browser = await launch({ headless: false ?? 'new' })
     const page = await browser.newPage()
-    await page.emulateCPUThrottling(5)
-    await page.emulateNetworkConditions(PredefinedNetworkConditions['Fast 3G'])
+    // await page.emulateCPUThrottling(5)
+    // await page.emulateNetworkConditions(PredefinedNetworkConditions['Fast 3G'])
 
     const flow = await startFlow(page, {
         config: {
