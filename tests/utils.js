@@ -69,7 +69,7 @@ function usage() {
 
 /**
  * Calculate the run closest to the median of CPU Time and Memory Usage. 
- * The calculation is made using the Euclidean distance.
+ * The calculation is made using the Euclidean distance of normalized values.
  * 
  * @param {Array<string>} usage CSV output of {@link usage()}
  * @returns {[number, number]} The median CPU and memory usage pair
@@ -83,6 +83,7 @@ function computeMedianUsage(usage) {
     const nCpuMem = normalCpuMem.sort((a, b) => computeMedianDistance(a, medianCpu, medianMem) -
         computeMedianDistance(b, medianCpu, medianMem))[0]
 
+    // Values are denormalized using the max values of the original array
     return [nCpuMem[0] * maxCpu, nCpuMem[1] * maxMem]
 }
 
@@ -90,7 +91,7 @@ function computeMedianUsage(usage) {
  * Normalize elements of given nested array
  * 
  * @param {[[number, number]]} array 
- * @returns {Array} Normalized array
+ * @returns {[[number, number]]} Normalized array
  */
 function normalize(array) {
     const max0 = Math.max(...array.map(t => t[0]))
