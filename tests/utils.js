@@ -25,13 +25,20 @@ function setup(fn, dry = false) {
         bench(name, async () => dry || await fn(name, url), { iterations, warmupIterations }))
 
     if (dry) { // Load results of previous test run
-        beforeAll(() => readdirSync('./tmp/lighthouse').forEach(file => {
+        beforeAll(() => {
+            readdirSync('./tmp/lighthouse').forEach(file => {
             if (file.endsWith('.json')) {
                 let d = file.search(/\d/);
                 runs[file.slice(0, d)][file.slice(d, file.search(/\./))] =
                     (JSON.parse(readFileSync(`./tmp/lighthouse/${file}`)));
             }
-        }))
+            })
+            readdirSync('./tmp/').forEach(file => {
+                if (file.endsWith('.csv')) {
+                    renameSync(`./tmp/${file}`, `./tmp/${file.replace(/ - \[\d+\]/, '')}`)
+                }
+            })
+        })
     } else { // Perform new benchmark run
         beforeAll(() => {
             rmSync('./tmp', { recursive: true, force: true })
