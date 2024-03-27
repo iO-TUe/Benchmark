@@ -5,7 +5,7 @@ import { launch } from 'puppeteer';
 import { afterAll } from "vitest";
 import { computeMedianUsage, runs, setup, usage, warmupIterations as wi } from './utils';
 
-setup(flows)
+setup(flows, true)
 
 afterAll(() => Object.entries(runs).forEach(([name, results]) => {
     let lhr = results.slice(wi).map(flow => flow[0].lhr)
@@ -16,7 +16,7 @@ afterAll(() => Object.entries(runs).forEach(([name, results]) => {
         { encoding: 'utf-8' }).split('\n').slice(1 + wi, -1)
     const [mCpu, mMem] = computeMedianUsage(usage)
     usage = wi + usage.findIndex(s =>
-        s.split(';')[2] === mCpu && +s.split(';')[1].replace(' K', '') === mMem
+        +s.split(';')[2] === mCpu && +s.split(';')[1].replace(' K', '') === mMem
     )
     // console.log('Median usage:', name, iUSE)
     renameSync(`./tmp/${name}CPU.csv`, `./tmp/${name}CPU - [${usage}].csv`)
@@ -24,7 +24,7 @@ afterAll(() => Object.entries(runs).forEach(([name, results]) => {
 }))
 
 async function flows(name, url) {
-    const browser = await launch({ headless: false ?? 'new' })
+    const browser = await launch({ headless: 'new' })
     const page = await browser.newPage()
     // await page.emulateCPUThrottling(5)
     // await page.emulateNetworkConditions(PredefinedNetworkConditions['Fast 3G'])

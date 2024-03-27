@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, readdirSync, rmSync } from "fs";
+import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync } from "fs";
 import { spawnSync } from 'node:child_process';
 import { beforeAll, bench } from "vitest";
 
@@ -27,11 +27,11 @@ function setup(fn, dry = false) {
     if (dry) { // Load results of previous test run
         beforeAll(() => {
             readdirSync('./tmp/lighthouse').forEach(file => {
-            if (file.endsWith('.json')) {
-                let d = file.search(/\d/);
-                runs[file.slice(0, d)][file.slice(d, file.search(/\./))] =
-                    (JSON.parse(readFileSync(`./tmp/lighthouse/${file}`)));
-            }
+                if (file.endsWith('.json')) {
+                    let d = file.search(/\d/);
+                    runs[file.slice(0, d)][file.slice(d, file.search(/\./))] =
+                        (JSON.parse(readFileSync(`./tmp/lighthouse/${file}`)));
+                }
             })
             readdirSync('./tmp/').forEach(file => {
                 if (file.endsWith('.csv')) {
@@ -75,11 +75,27 @@ function usage() {
  * @returns {[number, number]} The median CPU and memory usage pair
  */
 function computeMedianUsage(usage) {
-    const cpuMem = usage.map(s => [s.split(';')[2], +s.split(';')[1].replace(' K', '')])
-    const medianCpu = median(cpuMem.map(t => t[0]))
-    const medianMem = median(cpuMem.map(t => t[1]))
-    return cpuMem.sort((a, b) => computeMedianDistance(a, medianCpu, medianMem) -
+    const [maxCpu, maxMem, normalCpuMem] = normalize(usage.map(s =>
+        [+s.split(';')[2], +s.split(';')[1].replace(' K', '')]))
+    const medianCpu = median(normalCpuMem.map(t => t[0]))
+    const medianMem = median(normalCpuMem.map(t => t[1]))
+
+    const nCpuMem = normalCpuMem.sort((a, b) => computeMedianDistance(a, medianCpu, medianMem) -
         computeMedianDistance(b, medianCpu, medianMem))[0]
+
+    return [nCpuMem[0] * maxCpu, nCpuMem[1] * maxMem]
+}
+
+/**
+ * Normalize elements of given nested array
+ * 
+ * @param {[[number, number]]} array 
+ * @returns {Array} Normalized array
+ */
+function normalize(array) {
+    const max0 = Math.max(...array.map(t => t[0]))
+    const max1 = Math.max(...array.map(t => t[1]))
+    return [max0, max1, array.map((t) => [t[0] / max0, t[1] / max1])]
 }
 
 /**
