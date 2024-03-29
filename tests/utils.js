@@ -2,8 +2,8 @@ import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync } from "fs";
 import { spawnSync } from 'node:child_process';
 import { beforeAll, bench } from "vitest";
 
-const iterations = 5
-const warmupIterations = 2
+const iterations = 10
+const warmupIterations = 5
 const implementations = ['React', 'Qwik', 'Solid', 'Vue'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
