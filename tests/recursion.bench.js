@@ -23,11 +23,9 @@ afterAll(() => Object.entries(runs).forEach(([name, results]) => {
     writeFileSync(`./tmp/${name}LHR - [${lhr}].json`, JSON.stringify(results[lhr], null, '\t'))
 }))
 
-async function flows(name, url) {
-    const browser = await launch({ headless: 'new' })
+async function flows(name, url, headless) {
+    const browser = await launch({ headless: headless ?? 'new' })
     const page = await browser.newPage()
-    // await page.emulateCPUThrottling(5)
-    // await page.emulateNetworkConditions(PredefinedNetworkConditions['Fast 3G'])
 
     const flow = await startFlow(page, {
         config: {
@@ -51,19 +49,20 @@ async function flows(name, url) {
 
     // console.log("BeforeRecurse")
     await flow.startTimespan({ name: 'BeforeRecurse' })
-    await page.$('button[aria-label="+"').then(el => el && el.click())
-    await page.waitForFunction('document.querySelector("[class*=value]").textContent === "96"')
+    await page.$('button[aria-label="-"').then(el => el && el.click())
+    await page.waitForFunction('document.querySelector("[class*=value]").textContent === "79"')
     await flow.endTimespan()
 
     // console.log("Recurse")
     await flow.startTimespan({ name: 'Recurse' })
     await page.click('[role=feed]')
+    await page.waitForFunction('document.querySelectorAll("[role=feed]").length === 1141')
     await flow.endTimespan()
 
     // console.log("AfterRecurse")
     await flow.startTimespan({ name: 'AfterRecurse' })
-    await page.$('button[aria-label="-"').then(el => el && el.click(), { timeout: 0 })
-    await page.waitForFunction('document.querySelector("[class*=value]").textContent === "95"', { timeout: 0 })
+    await page.$('button[aria-label="+"').then(el => el && el.click({ count: 22 }), { timeout: 0 })
+    await page.waitForFunction('document.querySelector("[class*=value]").textContent === "100"', { timeout: 0 })
     await flow.endTimespan()
 
     const iter = runs[name].length

@@ -3,7 +3,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "vitest bench --run --reporter=json ./tests/"
+    "test": "vitest bench --run --reporter=json ./tests/",
+    "deploy": "firebase deploy"
   },
   "devDependencies": {
     "lighthouse": "^11.4.0",

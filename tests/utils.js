@@ -4,7 +4,7 @@ import { beforeAll, bench } from "vitest";
 
 const iterations = 10
 const warmupIterations = 5
-const implementations = ['React', 'Qwik', 'Solid', 'Vue'],
+const implementations = ['Qwik', 'Solid', 'React', 'Vue', 'Svelte'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
 /**
