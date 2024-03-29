@@ -2,13 +2,10 @@ import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync } from "fs";
 import { spawnSync } from 'node:child_process';
 import { beforeAll, bench } from "vitest";
 
-const iterations = 10
-const warmupIterations = 5
-const implementations = [
-    ['React', 'https://io-2imc05.web.app/'],
-    ['Qwik', 'https://qwiiik.web.app/'],
-    ['Solid', 'https://io-tue.web.app/'],
-], runs = Object.fromEntries(implementations.map(([$]) => [$, []]))
+const iterations = 5
+const warmupIterations = 2
+const implementations = ['React', 'Qwik', 'Solid', 'Vue'],
+    runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
 /**
  * Runs a benchmark of {@link fn} for all {@link implementations} provided. 
@@ -21,8 +18,8 @@ const implementations = [
  * @param {boolean} [dry] Use results of the last benchmark instead of running a new one.
  */
 function setup(fn, dry = false) {
-    implementations.forEach(([name, url]) =>
-        bench(name, async () => dry || await fn(name, url), { iterations, warmupIterations }))
+    implementations.forEach((name) => bench(name, async () => dry ||
+        await fn(name, `https://io-${name.toLowerCase()}.web.app/`), { iterations, warmupIterations }))
 
     if (dry) { // Load results of previous test run
         beforeAll(() => {

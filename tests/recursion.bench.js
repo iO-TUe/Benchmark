@@ -5,7 +5,7 @@ import { launch } from 'puppeteer';
 import { afterAll } from "vitest";
 import { computeMedianUsage, runs, setup, usage, warmupIterations as wi } from './utils';
 
-setup(flows, true)
+setup(flows)
 
 afterAll(() => Object.entries(runs).forEach(([name, results]) => {
     let lhr = results.slice(wi).map(flow => flow[0].lhr)
@@ -51,19 +51,18 @@ async function flows(name, url) {
 
     // console.log("BeforeRecurse")
     await flow.startTimespan({ name: 'BeforeRecurse' })
-    await page.$('button[aria-label=add').then(el => el && el.click())
+    await page.$('button[aria-label="+"').then(el => el && el.click())
     await page.waitForFunction('document.querySelector("[class*=value]").textContent === "96"')
     await flow.endTimespan()
 
     // console.log("Recurse")
     await flow.startTimespan({ name: 'Recurse' })
     await page.click('[role=feed]')
-    await page.waitForTimeout(1000)
     await flow.endTimespan()
 
     // console.log("AfterRecurse")
     await flow.startTimespan({ name: 'AfterRecurse' })
-    await page.$('button[aria-label=sub').then(el => el && el.click(), { timeout: 0 })
+    await page.$('button[aria-label="-"').then(el => el && el.click(), { timeout: 0 })
     await page.waitForFunction('document.querySelector("[class*=value]").textContent === "95"', { timeout: 0 })
     await flow.endTimespan()
 
