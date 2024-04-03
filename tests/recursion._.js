@@ -1,26 +1,28 @@
 import { appendFileSync, readFileSync, renameSync, writeFileSync } from 'fs';
 import { generateReport, startFlow } from 'lighthouse';
 import { computeMedianRun } from 'lighthouse/core/lib/median-run';
+import { basename } from 'path';
 import { launch } from 'puppeteer';
 import { afterAll } from "vitest";
 import { computeMedianUsage, runs, setup, usage, warmupIterations as wi } from './utils';
 
-setup(flows)
+const base = `./tmp/${basename(__filename).split('.')[0]}`
+setup(flows, base)
 
 afterAll(() => Object.entries(runs).forEach(([name, results]) => {
     let lhr = results.slice(wi).map(flow => flow[0].lhr)
     lhr = wi + lhr.indexOf(computeMedianRun(lhr))
     // console.log('Median run:', name, iLHR + wi)
 
-    let usage = readFileSync(`./tmp/${name}CPU.csv`,
+    let usage = readFileSync(`${base}/${name}CPU.csv`,
         { encoding: 'utf-8' }).split('\n').slice(1 + wi, -1)
     const [mCpu, mMem] = computeMedianUsage(usage)
     usage = wi + usage.findIndex(s =>
         +s.split(';')[2] === mCpu && +s.split(';')[1].replace(' K', '') === mMem
     )
     // console.log('Median usage:', name, iUSE)
-    renameSync(`./tmp/${name}CPU.csv`, `./tmp/${name}CPU - [${usage}].csv`)
-    writeFileSync(`./tmp/${name}LHR - [${lhr}].json`, JSON.stringify(results[lhr], null, '\t'))
+    renameSync(`${base}/${name}CPU.csv`, `${base}/${name}CPU - [${usage}].csv`)
+    writeFileSync(`${base}/${name}LHR - [${lhr}].json`, JSON.stringify(results[lhr], null, '\t'))
 }))
 
 async function flows(name, url, headless) {
@@ -36,7 +38,8 @@ async function flows(name, url, headless) {
                     'screenshot-thumbnails',
                     'final-screenshot',
                     'non-composited-animations',
-                    'cumulative-layout-shift'
+                    'cumulative-layout-shift',
+                    'uses-long-cache-ttl'
                 ],
                 disableFullPageScreenshot: true,
                 skipAboutBlank: true,
@@ -60,21 +63,27 @@ async function flows(name, url, headless) {
     await flow.endTimespan()
 
     // console.log("AfterRecurse")
-    await flow.startTimespan({ name: 'AfterRecurse' })
-    await page.$('button[aria-label="+"').then(el => el && el.click({ count: 22 }), { timeout: 0 })
+    await flow.startTimespan({ name: 'AfterRecurseSub' })
+    await page.$('button[aria-label="-"').then(el => el && el.click({ count: 4 }), { timeout: 0 })
+    await page.waitForFunction('document.querySelector("[class*=value]").textContent === "75"', { timeout: 0 })
+    await flow.endTimespan()
+
+    // console.log("AfterRecurse")
+    await flow.startTimespan({ name: 'AfterRecurseAdd' })
+    await page.$('button[aria-label="+"').then(el => el && el.click({ count: 25 }), { timeout: 0 })
     await page.waitForFunction('document.querySelector("[class*=value]").textContent === "100"', { timeout: 0 })
     await flow.endTimespan()
 
     const iter = runs[name].length
 
     // console.log("Get CPU usages")
-    if (iter === 0) writeFileSync(`./tmp/${name}CPU.csv`, 'PID;Memory;CPU;i\n')
-    usage().forEach(([pid, mem, cpu]) => appendFileSync(`./tmp/${name}CPU.csv`, `${pid};${mem};${cpu};${iter}\n`))
+    if (iter === 0) writeFileSync(`${base}/${name}CPU.csv`, 'PID;Memory;CPU;i\n')
+    usage().forEach(([pid, mem, cpu]) => appendFileSync(`${base}/${name}CPU.csv`, `${pid};${mem};${cpu};${iter}\n`))
 
     // console.log("Generating reports")
     const json = await flow.createFlowResult()
-    writeFileSync(`./tmp/lighthouse/${name + iter}.json`, JSON.stringify(json.steps, null, '\t'))
-    writeFileSync(`./tmp/lighthouse/${name + iter}.html`, generateReport(json, 'html'))
+    writeFileSync(`${base}/lighthouse/${name + iter}.json`, JSON.stringify(json.steps, null, '\t'))
+    writeFileSync(`${base}/lighthouse/${name + iter}.html`, generateReport(json, 'html'))
     runs[name].push(json.steps)
 
     await browser.close()

@@ -4,7 +4,6 @@ export default defineConfig({
     test: {
         outputFile: "./tmp/bench.json",
         testTimeout: 0,
-        maxConcurrency: 1,
         poolOptions: {
             threads: {
                 singleThread: true

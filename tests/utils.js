@@ -1,11 +1,38 @@
-import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync } from "fs";
+import { appendFileSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "fs";
+import { UserFlow, generateReport } from 'lighthouse';
+import { computeMedianRun } from 'lighthouse/core/lib/median-run';
 import { spawnSync } from 'node:child_process';
-import { beforeAll, bench } from "vitest";
+import { afterAll, beforeAll, bench } from "vitest";
 
-const iterations = 10
-const warmupIterations = 5
-const implementations = ['Qwik', 'Solid', 'React', 'Vue', 'Svelte'],
+const iterations = 5
+const warmupIterations = 2
+const implementations = ['Qwik', 'React', 'Solid'],
+    // const implementations = ['Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
+
+
+const flowConfig = {
+    config: {
+        extends: 'lighthouse:default',
+        settings: {
+            throttlingMethod: 'devtools',
+            maxWaitForLoad: 90_000,
+            onlyCategories: ['performance'],
+            skipAudits: [
+                'screenshot-thumbnails',
+                'final-screenshot',
+                'non-composited-animations',
+                'cumulative-layout-shift',
+                'layout-shift-elements',
+                'layout-shifts',
+                'uses-long-cache-ttl'
+            ],
+            disableFullPageScreenshot: true,
+            skipAboutBlank: true,
+            usePassiveGathering: true
+        }
+    }
+}
 
 /**
  * Runs a benchmark of {@link fn} for all {@link implementations} provided. 
@@ -17,43 +44,60 @@ const implementations = ['Qwik', 'Solid', 'React', 'Vue', 'Svelte'],
  * @param {Function} fn The benchmark function.
  * @param {boolean} [dry] Use results of the last benchmark instead of running a new one.
  */
-function setup(fn, dry = false) {
-    implementations.forEach((name) => bench(name, async () => dry ||
-        await fn(name, `https://io-${name.toLowerCase()}.web.app/`), { iterations, warmupIterations }))
+function setup(fn, base, dry = false) {
+    implementations.forEach((name) => {
+        return bench(name, () => dry || fn(name, `https://io-${name.toLowerCase()}.web.app`), { iterations, warmupIterations });
+    })
 
     if (dry) { // Load results of previous test run
         beforeAll(() => {
-            readdirSync('./tmp/lighthouse').forEach(file => {
-                if (file.endsWith('.json')) {
+            readdirSync(`${base}/lighthouse`).forEach(file => {
+                if (file.endswarmupIterationsth('.json')) {
                     let d = file.search(/\d/);
                     runs[file.slice(0, d)][file.slice(d, file.search(/\./))] =
-                        (JSON.parse(readFileSync(`./tmp/lighthouse/${file}`)));
+                        (JSON.parse(readFileSync(`${base}/lighthouse/${file}`)));
                 }
             })
-            readdirSync('./tmp/').forEach(file => {
-                if (file.endsWith('.csv')) {
-                    renameSync(`./tmp/${file}`, `./tmp/${file.replace(/ - \[\d+\]/, '')}`)
+            readdirSync(base).forEach(file => {
+                if (file.endswarmupIterationsth('.csv')) {
+                    renameSync(`${base}/${file}`, `${base}/${file.replace(/ - \[\d+\]/, '')}`)
                 }
             })
         })
     } else { // Perform new benchmark run
         beforeAll(() => {
-            rmSync('./tmp', { recursive: true, force: true })
-            mkdirSync('./tmp')
-            mkdirSync('./tmp/lighthouse')
+            rmSync(base, { recursive: true, force: true })
+            mkdirSync(base)
+            mkdirSync(`${base}/lighthouse`)
             spawnSync('taskkill', ['/fi', 'ImageName eq chrome.exe', '/F']);
         })
     }
+
+    afterAll(() => Object.entries(runs).forEach(([name, results]) => {
+        if (results.length === 0) return
+        let lhr = results.slice(warmupIterations).map(flow => flow[0].lhr)
+        lhr = warmupIterations + lhr.indexOf(computeMedianRun(lhr))
+        // console.log('Median run:', name, iLHR + warmupIterations)
+
+        let usage = readFileSync(`${base}/${name}CPU.csv`,
+            { encoding: 'utf-8' }).split('\n').slice(1 + warmupIterations, -1)
+        const [mCpu, mMem] = computeMedianUsage(usage)
+        usage = warmupIterations + usage.findIndex(s =>
+            +s.split(';')[2] === mCpu && +s.split(';')[1].replace(' K', '') === mMem
+        )
+        // console.log('Median usage:', name, iUSE)
+        renameSync(`${base}/${name}CPU.csv`, `${base}/${name}CPU - [${usage}].csv`)
+        writeFileSync(`${base}/${name}LHR - [${lhr}].json`, JSON.stringify(results[lhr], null, '\t'))
+    }))
 }
 
-
 /**
- * Use Tasklist to retrieve all chrome.exe processes that have used at least 10s of CPU time.
+ * Use Tasklist to retrieve all chrome.exe processes that have used at least {@link threshold}s of CPU time.
  * The process Status=unknown is used to filter out visible UI threads.
- * 
+ * @param {number} threshold 
  * @returns {string[][]} Tuples of PID, Mem. usage and CPU time.
  */
-function usage() {
+function usage(threshold) {
     return spawnSync('tasklist', ['/fo', 'csv', '/v',
         '/fi', 'ImageName eq chrome.exe',
         '/fi', 'Status eq unknown'
@@ -61,7 +105,39 @@ function usage() {
         .map(s => s.replaceAll('"', '').split(','))
         .map(a => [a[1], a[4], a[7].split(':')
             .reduce((t, s, i, a) => t += i + 1 < a.length ? s * 60 : +s, 0)])
-        .filter(a => a[2] > 10)
+        .filter(a => a[2] > threshold)
+}
+
+/**
+ * Save results of this run to the filesystem. 
+ * 
+ * To get the differnce between two moments, a previous call to {@link usage()} can be provided as final argument.
+ * 
+ * @param {string} base 
+ * @param {string} name 
+ * @param {UserFlow} flow 
+ * @param {number} threshold The minimum of CPU Time to filter on
+ * @param {Array} usg Previous call to {@link usage()}
+ */
+async function saveResults(base, name, flow, threshold = 25, usg = undefined) {
+    const iter = runs[name].length
+
+    if (usg) usg = usg.reduce((obj, [pid, mem, cpu]) => ({ ...obj, [pid]: [mem, cpu] }), {})
+
+    if (iter === 0) writeFileSync(`${base}/${name}CPU.csv`, 'PID;Memory;CPU;i\n')
+    usage(threshold).forEach(([pid, mem, cpu]) => {
+        if (usg[pid]) {
+            mem = `${(+mem.split(' ')[0] * 1000 - +usg[pid][0].split(' ')[0] * 1000) / 1000} K`
+            cpu -= usg[pid][1]
+        }
+        appendFileSync(`${base}/${name}CPU.csv`, `${pid};${mem};${cpu};${iter}\n`);
+    })
+
+    // console.log("Generating reports")
+    const json = await flow.createFlowResult()
+    writeFileSync(`${base}/lighthouse/${name + iter}.json`, JSON.stringify(json.steps, null, '\t'))
+    writeFileSync(`${base}/lighthouse/${name + iter}.html`, generateReport(json, 'html'))
+    runs[name].push(json.steps)
 }
 
 /**
@@ -126,5 +202,5 @@ function computeMedianDistance(cpu, medianCpu, medianMem) {
 }
 
 
-export { computeMedianUsage, iterations, runs, setup, usage, warmupIterations };
+export { computeMedianUsage, flowConfig, saveResults, setup, usage };
 
