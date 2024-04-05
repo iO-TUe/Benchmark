@@ -7,7 +7,7 @@ const base = `./tmp/${basename(__filename).split('.')[0]}`
 setup(flows, base)
 
 async function flows(name, url) {
-    const browser = await launch({ headless: false })
+    const browser = await launch({ devtools: false })
     const page = await browser.newPage()
     const flow = await startFlow(page, flowConfig)
 
