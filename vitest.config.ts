@@ -2,6 +2,8 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
     test: {
+        bail: 1,
+        reporters: ['json'],
         outputFile: "./tmp/bench.json",
         testTimeout: 0,
         poolOptions: {

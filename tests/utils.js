@@ -1,16 +1,22 @@
 import { appendFileSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "fs";
-import { UserFlow, generateReport } from 'lighthouse';
+import { UserFlow, defaultConfig, generateReport } from 'lighthouse';
 import { computeMedianRun } from 'lighthouse/core/lib/median-run';
 import { spawnSync } from 'node:child_process';
 import { afterAll, beforeAll, bench } from "vitest";
 
-const iterations = 5
-const warmupIterations = 2
-const implementations = ['Qwik', 'React', 'Solid'],
+const iterations = 100
+const warmupIterations = 5
+const implementations = ['Qwik', 'React', 'Solid', 'Svelte'],
     // const implementations = ['Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
 
+/**
+ * Uses {@link defaultConfig}.
+ * 
+ * To speed up tests the RootCauses & TraceElements artifacts should manually be disabled 
+ * in the depency itself. Unfortunetely, 
+ */
 const flowConfig = {
     config: {
         extends: 'lighthouse:default',
@@ -45,9 +51,8 @@ const flowConfig = {
  * @param {boolean} [dry] Use results of the last benchmark instead of running a new one.
  */
 function setup(fn, base, dry = false) {
-    implementations.forEach((name) => {
-        return bench(name, () => dry || fn(name, `https://io-${name.toLowerCase()}.web.app`), { iterations, warmupIterations });
-    })
+    implementations.forEach((name) => bench(name, () => dry || fn(name, `https://io-${name.toLowerCase()}.web.app`,
+        { devtools: false, protocolTimeout: 20_000 }), { iterations, warmupIterations }))
 
     if (dry) { // Load results of previous test run
         beforeAll(() => {
@@ -95,17 +100,17 @@ function setup(fn, base, dry = false) {
  * Use Tasklist to retrieve all chrome.exe processes that have used at least {@link threshold}s of CPU time.
  * The process Status=unknown is used to filter out visible UI threads.
  * @param {number} threshold 
- * @returns {string[][]} Tuples of PID, Mem. usage and CPU time.
+ * @returns {[string[][], number]} Tuples of PID, Mem. usage and CPU time. And the value of the threshold used.
  */
-function usage(threshold) {
-    return spawnSync('tasklist', ['/fo', 'csv', '/v',
+function usage(threshold = 10) {
+    return [spawnSync('tasklist', ['/fo', 'csv', '/v',
         '/fi', 'ImageName eq chrome.exe',
         '/fi', 'Status eq unknown'
     ], { encoding: 'utf-8' }).stdout.split('\n').slice(1, -1)
         .map(s => s.replaceAll('"', '').split(','))
         .map(a => [a[1], a[4], a[7].split(':')
             .reduce((t, s, i, a) => t += i + 1 < a.length ? s * 60 : +s, 0)])
-        .filter(a => a[2] > threshold)
+        .filter(a => a[2] > threshold), threshold]
 }
 
 /**
@@ -119,14 +124,14 @@ function usage(threshold) {
  * @param {number} threshold The minimum of CPU Time to filter on
  * @param {Array} usg Previous call to {@link usage()}
  */
-async function saveResults(base, name, flow, threshold = 25, usg = undefined) {
+async function saveResults(base, name, flow, threshold, usg = undefined) {
     const iter = runs[name].length
 
     if (usg) usg = usg.reduce((obj, [pid, mem, cpu]) => ({ ...obj, [pid]: [mem, cpu] }), {})
 
     if (iter === 0) writeFileSync(`${base}/${name}CPU.csv`, 'PID;Memory;CPU;i\n')
-    usage(threshold).forEach(([pid, mem, cpu]) => {
-        if (usg[pid]) {
+    usage(threshold)[0].forEach(([pid, mem, cpu]) => {
+        if (usg && usg[pid]) {
             mem = `${(+mem.split(' ')[0] * 1000 - +usg[pid][0].split(' ')[0] * 1000) / 1000} K`
             cpu -= usg[pid][1]
         }

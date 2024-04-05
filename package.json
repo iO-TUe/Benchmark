@@ -3,7 +3,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "vitest bench --config ./vitest.config.ts --run ./tests/addition.bench.js",
+    "test": "vitest bench --config ./vitest.config.ts --run ./tests/",
     "deploy": "firebase deploy"
   },
   "devDependencies": {
