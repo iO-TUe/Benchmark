@@ -11,12 +11,9 @@ async function flows(base, name, url, config) {
 
     await flow.navigate(url + '/load')
 
-    await flow.startTimespan({ name: 'Increase' })
-    let value
-    while ((value = await page.$eval("[class*=value]", el => +el.textContent)) < 55) {
-        await page.click('button[aria-label="+"')
-        await page.waitForFunction((value) => +document.querySelector("[class*=value]").textContent == ++value, {}, value)
-    }
+    await flow.startTimespan({ name: 'Decrease' })
+    await page.click('button[aria-label="-"')
+    await page.waitForFunction(() => +document.querySelector("[class*=value]").textContent === 49)
     await flow.endTimespan()
 
     saveResults(base, name, flow)

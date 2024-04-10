@@ -1,13 +1,13 @@
-import { appendFileSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "fs";
-import { UserFlow, defaultConfig, generateReport } from 'lighthouse';
+import { appendFileSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "fs";
+import { defaultConfig, generateReport } from 'lighthouse';
 import { computeMedianRun } from 'lighthouse/core/lib/median-run';
 import { spawnSync } from 'node:child_process';
+import { basename } from 'path';
 import { afterAll, beforeAll, bench } from "vitest";
 
-const iterations = 100
-const warmupIterations = 5
-const implementations = ['Qwik', 'React', 'Solid', 'Svelte'],
-    // const implementations = ['Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
+const iterations = 1
+const warmupIterations = 1
+const implementations = ['Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
 
@@ -15,12 +15,17 @@ const implementations = ['Qwik', 'React', 'Solid', 'Svelte'],
  * Uses {@link defaultConfig}.
  * 
  * To speed up tests the RootCauses & TraceElements artifacts should manually be disabled 
- * in the depency itself. Unfortunetely, 
+ * in the depency itself. Unfortunetely, this cannot be done automatically without forking the library.
+ * 
+ * @type {import('lighthouse').UserFlow.Options}
  */
 const flowConfig = {
     config: {
         extends: 'lighthouse:default',
         settings: {
+            // throttling: {
+            //     cpuSlowdownMultiplier: 1
+            // },
             throttlingMethod: 'devtools',
             maxWaitForLoad: 90_000,
             onlyCategories: ['performance'],
@@ -36,7 +41,10 @@ const flowConfig = {
             disableFullPageScreenshot: true,
             skipAboutBlank: true,
             usePassiveGathering: true
-        }
+        },
+    },
+    flags: {
+        screenEmulation: { disabled: true }
     }
 }
 
@@ -48,51 +56,35 @@ const flowConfig = {
  * Before the benchmark, the tmp dir is cleared and all chrome processes are closed.
  * 
  * @param {Function} fn The benchmark function.
- * @param {boolean} [dry] Use results of the last benchmark instead of running a new one.
+ * @param {string} base Current file
  */
-function setup(fn, base, dry = false) {
-    implementations.forEach((name) => bench(name, () => dry || fn(name, `https://io-${name.toLowerCase()}.web.app`,
-        { devtools: false, protocolTimeout: 20_000 }), { iterations, warmupIterations }))
+function setup(fn, base) {
+    base = `./tmp/${basename(base).split('.')[0]}`
+    implementations.forEach((name) => bench(name, () => fn(base, name, `https://io-${name.toLowerCase()}.web.app`,
+        { devtools: false, protocolTimeout: 180_000 }), { iterations, warmupIterations, warmupTime: 1 }))
 
-    if (dry) { // Load results of previous test run
-        beforeAll(() => {
-            readdirSync(`${base}/lighthouse`).forEach(file => {
-                if (file.endswarmupIterationsth('.json')) {
-                    let d = file.search(/\d/);
-                    runs[file.slice(0, d)][file.slice(d, file.search(/\./))] =
-                        (JSON.parse(readFileSync(`${base}/lighthouse/${file}`)));
-                }
-            })
-            readdirSync(base).forEach(file => {
-                if (file.endswarmupIterationsth('.csv')) {
-                    renameSync(`${base}/${file}`, `${base}/${file.replace(/ - \[\d+\]/, '')}`)
-                }
-            })
-        })
-    } else { // Perform new benchmark run
-        beforeAll(() => {
-            rmSync(base, { recursive: true, force: true })
-            mkdirSync(base)
-            mkdirSync(`${base}/lighthouse`)
-            spawnSync('taskkill', ['/fi', 'ImageName eq chrome.exe', '/F']);
-        })
-    }
+    beforeAll(() => {
+        rmSync(base, { recursive: true, force: true })
+        mkdirSync(base)
+        mkdirSync(`${base}/lighthouse`)
+        spawnSync('taskkill', ['/fi', 'ImageName eq chrome.exe', '/F']);
+    })
+
 
     afterAll(() => Object.entries(runs).forEach(([name, results]) => {
         if (results.length === 0) return
-        let lhr = results.slice(warmupIterations).map(flow => flow[0].lhr)
-        lhr = warmupIterations + lhr.indexOf(computeMedianRun(lhr))
-        // console.log('Median run:', name, iLHR + warmupIterations)
+        const lhr = results.slice(warmupIterations).map(flow => flow.steps[0].lhr)
+        const lhri = warmupIterations + lhr.indexOf(computeMedianRun(lhr))
 
-        let usage = readFileSync(`${base}/${name}CPU.csv`,
+        const usage = readFileSync(`${base}/${name}CPU.csv`,
             { encoding: 'utf-8' }).split('\n').slice(1 + warmupIterations, -1)
         const [mCpu, mMem] = computeMedianUsage(usage)
-        usage = warmupIterations + usage.findIndex(s =>
+        const usagei = warmupIterations + usage.findIndex(s =>
             +s.split(';')[2] === mCpu && +s.split(';')[1].replace(' K', '') === mMem
         )
-        // console.log('Median usage:', name, iUSE)
-        renameSync(`${base}/${name}CPU.csv`, `${base}/${name}CPU - [${usage}].csv`)
-        writeFileSync(`${base}/${name}LHR - [${lhr}].json`, JSON.stringify(results[lhr], null, '\t'))
+        renameSync(`${base}/${name}CPU.csv`, `${base}/${name}CPU - [${usagei}].csv`)
+        writeFileSync(`${base}/${name}LHR - [${lhr}].json`, JSON.stringify(results[lhri].steps, null, '\t'))
+        writeFileSync(`${base}/${name}LHR - [${lhr}].html`, generateReport(results[lhri], 'html'))
     }))
 }
 
@@ -100,17 +92,18 @@ function setup(fn, base, dry = false) {
  * Use Tasklist to retrieve all chrome.exe processes that have used at least {@link threshold}s of CPU time.
  * The process Status=unknown is used to filter out visible UI threads.
  * @param {number} threshold 
- * @returns {[string[][], number]} Tuples of PID, Mem. usage and CPU time. And the value of the threshold used.
+ * @returns {[Array, number]} Tuples of PID, Mem. usage and CPU time. And the value of the threshold used.
  */
 function usage(threshold = 10) {
+    // @ts-ignore
     return [spawnSync('tasklist', ['/fo', 'csv', '/v',
         '/fi', 'ImageName eq chrome.exe',
         '/fi', 'Status eq unknown'
     ], { encoding: 'utf-8' }).stdout.split('\n').slice(1, -1)
         .map(s => s.replaceAll('"', '').split(','))
         .map(a => [a[1], a[4], a[7].split(':')
-            .reduce((t, s, i, a) => t += i + 1 < a.length ? s * 60 : +s, 0)])
-        .filter(a => a[2] > threshold), threshold]
+            .reduce((t, s, i, a) => t += i + 1 < a.length ? +s * 60 : +s, 0)])
+        .filter(a => +a[2] > threshold), threshold]
 }
 
 /**
@@ -120,11 +113,11 @@ function usage(threshold = 10) {
  * 
  * @param {string} base 
  * @param {string} name 
- * @param {UserFlow} flow 
+ * @param {import("lighthouse").UserFlow} flow 
  * @param {number} threshold The minimum of CPU Time to filter on
  * @param {Array} usg Previous call to {@link usage()}
  */
-async function saveResults(base, name, flow, threshold, usg = undefined) {
+async function saveResults(base, name, flow, threshold = undefined, usg = undefined) {
     const iter = runs[name].length
 
     if (usg) usg = usg.reduce((obj, [pid, mem, cpu]) => ({ ...obj, [pid]: [mem, cpu] }), {})
@@ -138,23 +131,23 @@ async function saveResults(base, name, flow, threshold, usg = undefined) {
         appendFileSync(`${base}/${name}CPU.csv`, `${pid};${mem};${cpu};${iter}\n`);
     })
 
-    // console.log("Generating reports")
     const json = await flow.createFlowResult()
     writeFileSync(`${base}/lighthouse/${name + iter}.json`, JSON.stringify(json.steps, null, '\t'))
     writeFileSync(`${base}/lighthouse/${name + iter}.html`, generateReport(json, 'html'))
-    runs[name].push(json.steps)
+    runs[name].push(json)
 }
 
 /**
  * Calculate the run closest to the median of CPU Time and Memory Usage. 
  * The calculation is made using the Euclidean distance of normalized values.
  * 
- * @param {Array<string>} usage CSV output of {@link usage()}
+ * @param {string[]} usage CSV output of {@link usage()}
  * @returns {[number, number]} The median CPU and memory usage pair
  */
 function computeMedianUsage(usage) {
     const [maxCpu, maxMem, normalCpuMem] = normalize(usage.map(s =>
         [+s.split(';')[2], +s.split(';')[1].replace(' K', '')]))
+
     const medianCpu = median(normalCpuMem.map(t => t[0]))
     const medianMem = median(normalCpuMem.map(t => t[1]))
 
@@ -168,8 +161,8 @@ function computeMedianUsage(usage) {
 /**
  * Normalize elements of given nested array
  * 
- * @param {[[number, number]]} array 
- * @returns {[[number, number]]} Normalized array
+ * @param {[number, number][]} array 
+ * @returns {[number, number, Array]} Normalized array
  */
 function normalize(array) {
     const max0 = Math.max(...array.map(t => t[0]))
