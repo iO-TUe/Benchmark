@@ -4,8 +4,9 @@ import { flowConfig, saveResults, setup } from './utils';
 
 setup(flows, __filename)
 
-async function flows(base, name, url, config) {
-    const browser = await launch(config)
+/** @type {import('./utils').Flows} */
+async function flows(base, name, url, options) {
+    const browser = await launch(options)
     const page = await browser.newPage()
     const flow = await startFlow(page, flowConfig)
 

@@ -10,6 +10,16 @@ const warmupIterations = 1
 const implementations = ['Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
+/**
+ * Starts a Puppeteer browser instance on {@link url} and runs some {@link import('lighthouse).UserFlow}.
+ * 
+ * Launch options can be provided via {@link options} and {@link flowConfig} is used for flow configration.
+* @callback Flows
+* @param {string} base 
+* @param {string} name 
+* @param {string} url 
+* @param {import('puppeteer').PuppeteerLaunchOptions} options 
+*/
 
 /**
  * Uses {@link defaultConfig}.
@@ -55,7 +65,7 @@ const flowConfig = {
  * 
  * Before the benchmark, the tmp dir is cleared and all chrome processes are closed.
  * 
- * @param {Function} fn The benchmark function.
+ * @param {Flows} fn The benchmark function.
  * @param {string} base Current file
  */
 function setup(fn, base) {
