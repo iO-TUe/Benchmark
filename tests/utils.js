@@ -5,8 +5,8 @@ import { spawnSync } from 'node:child_process';
 import { basename } from 'path';
 import { afterAll, beforeAll, bench } from "vitest";
 
-const iterations = 1
-const warmupIterations = 1
+const iterations = 5
+const warmupIterations = 5
 const implementations = ['Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
@@ -14,11 +14,11 @@ const implementations = ['Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
  * Starts a Puppeteer browser instance on {@link url} and runs some {@link import('lighthouse).UserFlow}.
  * 
  * Launch options can be provided via {@link options} and {@link flowConfig} is used for flow configration.
-* @callback Flows
-* @param {string} base 
-* @param {string} name 
-* @param {string} url 
-* @param {import('puppeteer').PuppeteerLaunchOptions} options 
+ * @callback Flows
+ * @param {string} base 
+ * @param {string} name 
+ * @param {string} url 
+ * @param {import('puppeteer').PuppeteerLaunchOptions} options 
 */
 
 /**
@@ -28,14 +28,14 @@ const implementations = ['Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
  * in the depency itself. Unfortunetely, this cannot be done automatically without forking the library.
  * 
  * @type {import('lighthouse').UserFlow.Options}
- */
+*/
 const flowConfig = {
     config: {
         extends: 'lighthouse:default',
         settings: {
-            // throttling: {
-            //     cpuSlowdownMultiplier: 1
-            // },
+            throttling: {
+                cpuSlowdownMultiplier: 1
+            },
             throttlingMethod: 'devtools',
             maxWaitForLoad: 90_000,
             onlyCategories: ['performance'],
@@ -67,7 +67,7 @@ const flowConfig = {
  * 
  * @param {Flows} fn The benchmark function.
  * @param {string} base Current file
- */
+*/
 function setup(fn, base) {
     base = `./tmp/${basename(base).split('.')[0]}`
     implementations.forEach((name) => bench(name, () => fn(base, name, `https://io-${name.toLowerCase()}.web.app`,
@@ -85,16 +85,16 @@ function setup(fn, base) {
         if (results.length === 0) return
         const lhr = results.slice(warmupIterations).map(flow => flow.steps[0].lhr)
         const lhri = warmupIterations + lhr.indexOf(computeMedianRun(lhr))
-
-        const usage = readFileSync(`${base}/${name}CPU.csv`,
-            { encoding: 'utf-8' }).split('\n').slice(1 + warmupIterations, -1)
-        const [mCpu, mMem] = computeMedianUsage(usage)
-        const usagei = warmupIterations + usage.findIndex(s =>
-            +s.split(';')[2] === mCpu && +s.split(';')[1].replace(' K', '') === mMem
-        )
-        renameSync(`${base}/${name}CPU.csv`, `${base}/${name}CPU - [${usagei}].csv`)
         writeFileSync(`${base}/${name}LHR - [${lhr}].json`, JSON.stringify(results[lhri].steps, null, '\t'))
         writeFileSync(`${base}/${name}LHR - [${lhr}].html`, generateReport(results[lhri], 'html'))
+
+        let usage = readFileSync(`${base}/${name}CPU.csv`, { encoding: 'utf-8' }).split('\n')
+        if (usage.length === 1) return
+        usage = usage.slice(1 + warmupIterations, -1)
+        const [mCpu, mMem] = computeMedianUsage(usage)
+        const usagei = warmupIterations + usage.findIndex(s =>
+            +s.split(';')[2] === mCpu && +s.split(';')[1].replace(' K', '') === mMem)
+        renameSync(`${base}/${name}CPU.csv`, `${base}/${name}CPU - [${usagei}].csv`)
     }))
 }
 
@@ -103,9 +103,8 @@ function setup(fn, base) {
  * The process Status=unknown is used to filter out visible UI threads.
  * @param {number} threshold 
  * @returns {[Array, number]} Tuples of PID, Mem. usage and CPU time. And the value of the threshold used.
- */
+*/
 function usage(threshold = 10) {
-    // @ts-ignore
     return [spawnSync('tasklist', ['/fo', 'csv', '/v',
         '/fi', 'ImageName eq chrome.exe',
         '/fi', 'Status eq unknown'
@@ -126,7 +125,7 @@ function usage(threshold = 10) {
  * @param {import("lighthouse").UserFlow} flow 
  * @param {number} threshold The minimum of CPU Time to filter on
  * @param {Array} usg Previous call to {@link usage()}
- */
+*/
 async function saveResults(base, name, flow, threshold = undefined, usg = undefined) {
     const iter = runs[name].length
 
@@ -153,7 +152,7 @@ async function saveResults(base, name, flow, threshold = undefined, usg = undefi
  * 
  * @param {string[]} usage CSV output of {@link usage()}
  * @returns {[number, number]} The median CPU and memory usage pair
- */
+*/
 function computeMedianUsage(usage) {
     const [maxCpu, maxMem, normalCpuMem] = normalize(usage.map(s =>
         [+s.split(';')[2], +s.split(';')[1].replace(' K', '')]))
@@ -173,7 +172,7 @@ function computeMedianUsage(usage) {
  * 
  * @param {[number, number][]} array 
  * @returns {[number, number, Array]} Normalized array
- */
+*/
 function normalize(array) {
     const max0 = Math.max(...array.map(t => t[0]))
     const max1 = Math.max(...array.map(t => t[1]))
@@ -185,7 +184,7 @@ function normalize(array) {
  * 
  * @param {Array<number>} array 
  * @returns {number} Median value
- */
+*/
 function median(array) {
     const sorted = array.sort((a, b) => a - b)
     const half = Math.floor(sorted.length / 2)
@@ -201,7 +200,7 @@ function median(array) {
  * @param {number} medianCpu
  * @param {number} medianMem 
  * @returns {number} Distance to the median CPU and Mem
- */
+*/
 function computeMedianDistance(cpu, medianCpu, medianMem) {
     const distanceCpu = medianCpu - cpu[0]
     const distanceMem = medianMem - cpu[1]
@@ -210,5 +209,5 @@ function computeMedianDistance(cpu, medianCpu, medianMem) {
 }
 
 
-export { computeMedianUsage, flowConfig, saveResults, setup, usage };
+export { flowConfig, saveResults, setup, usage };
 
