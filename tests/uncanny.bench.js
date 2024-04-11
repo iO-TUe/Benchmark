@@ -14,7 +14,7 @@ async function flows(base, name, url, options) {
 
     await flow.startTimespan({ name: 'Decrease' })
     await page.click('button[aria-label="-"')
-    await page.waitForFunction(() => +document.querySelector("[class*=value]").textContent === 49)
+    await page.waitForFunction(() => +document.querySelector("[class*=value]").textContent == 49)
     await flow.endTimespan()
 
     saveResults(base, name, flow)

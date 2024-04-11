@@ -3,7 +3,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "vitest bench --reporter=json --run ./tests/",
+    "test": "vitest bench --reporter=json --run ./tests/todo.bench.js",
     "deploy": "firebase deploy"
   },
   "devDependencies": {

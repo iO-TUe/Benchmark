@@ -5,8 +5,10 @@ import { spawnSync } from 'node:child_process';
 import { basename } from 'path';
 import { afterAll, beforeAll, bench } from "vitest";
 
-const iterations = 100
-const warmupIterations = 10
+
+const iterations = 50
+const warmupIterations = 5
+// const implementations = ['Qwik', 'Svelte'],
 const implementations = ['Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
@@ -83,18 +85,18 @@ function setup(fn, base) {
 
 
     afterAll(() => Object.entries(runs).forEach(([name, results]) => {
-        const wi = warmupIterations + 1
+        const warmup = runs[name].length - iterations
         if (results.length === 0) return
-        const lhr = results.slice(wi).map(flow => flow.steps[0].lhr)
-        const lhri = wi + lhr.indexOf(computeMedianRun(lhr))
+        const lhr = results.slice(warmup).map(flow => flow.steps[0].lhr)
+        const lhri = warmup + lhr.indexOf(computeMedianRun(lhr))
         writeFileSync(`${base}/${name}LHR - [${lhri}].json`, JSON.stringify(results[lhri].steps, null, '\t'))
         writeFileSync(`${base}/${name}LHR - [${lhri}].html`, generateReport(results[lhri], 'html'))
 
         let usage = readFileSync(`${base}/${name}CPU.csv`, { encoding: 'utf-8' }).split('\n')
         if (usage.length === 2) return
-        usage = usage.slice(1 + wi, -1)
+        usage = usage.slice(1 + warmup, -1)
         const [mCpu, mMem] = computeMedianUsage(usage)
-        const usagei = wi + usage.findIndex(s =>
+        const usagei = warmup + usage.findIndex(s =>
             +s.split(';')[2] === mCpu && +s.split(';')[1].replace(' K', '') === mMem)
         renameSync(`${base}/${name}CPU.csv`, `${base}/${name}CPU - [${usagei}].csv`)
     }))
