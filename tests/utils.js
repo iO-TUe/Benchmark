@@ -5,8 +5,8 @@ import { spawnSync } from 'node:child_process';
 import { basename } from 'path';
 import { afterAll, beforeAll, bench } from "vitest";
 
-const iterations = 5
-const warmupIterations = 5
+const iterations = 100
+const warmupIterations = 10
 const implementations = ['Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
@@ -33,9 +33,9 @@ const flowConfig = {
     config: {
         extends: 'lighthouse:default',
         settings: {
-            throttling: {
-                cpuSlowdownMultiplier: 1
-            },
+            // throttling: {
+            //     cpuSlowdownMultiplier: 1
+            // },
             throttlingMethod: 'devtools',
             maxWaitForLoad: 90_000,
             onlyCategories: ['performance'],
@@ -75,6 +75,7 @@ function setup(fn, base) {
 
     beforeAll(() => {
         rmSync(base, { recursive: true, force: true })
+        // mkdirSync('./tmp')
         mkdirSync(base)
         mkdirSync(`${base}/lighthouse`)
         spawnSync('taskkill', ['/fi', 'ImageName eq chrome.exe', '/F']);
@@ -82,17 +83,18 @@ function setup(fn, base) {
 
 
     afterAll(() => Object.entries(runs).forEach(([name, results]) => {
+        const wi = warmupIterations + 1
         if (results.length === 0) return
-        const lhr = results.slice(warmupIterations).map(flow => flow.steps[0].lhr)
-        const lhri = warmupIterations + lhr.indexOf(computeMedianRun(lhr))
-        writeFileSync(`${base}/${name}LHR - [${lhr}].json`, JSON.stringify(results[lhri].steps, null, '\t'))
-        writeFileSync(`${base}/${name}LHR - [${lhr}].html`, generateReport(results[lhri], 'html'))
+        const lhr = results.slice(wi).map(flow => flow.steps[0].lhr)
+        const lhri = wi + lhr.indexOf(computeMedianRun(lhr))
+        writeFileSync(`${base}/${name}LHR - [${lhri}].json`, JSON.stringify(results[lhri].steps, null, '\t'))
+        writeFileSync(`${base}/${name}LHR - [${lhri}].html`, generateReport(results[lhri], 'html'))
 
         let usage = readFileSync(`${base}/${name}CPU.csv`, { encoding: 'utf-8' }).split('\n')
-        if (usage.length === 1) return
-        usage = usage.slice(1 + warmupIterations, -1)
+        if (usage.length === 2) return
+        usage = usage.slice(1 + wi, -1)
         const [mCpu, mMem] = computeMedianUsage(usage)
-        const usagei = warmupIterations + usage.findIndex(s =>
+        const usagei = wi + usage.findIndex(s =>
             +s.split(';')[2] === mCpu && +s.split(';')[1].replace(' K', '') === mMem)
         renameSync(`${base}/${name}CPU.csv`, `${base}/${name}CPU - [${usagei}].csv`)
     }))
@@ -104,7 +106,7 @@ function setup(fn, base) {
  * @param {number} threshold 
  * @returns {[Array, number]} Tuples of PID, Mem. usage and CPU time. And the value of the threshold used.
 */
-function usage(threshold = 10) {
+function usage(threshold = 3) {
     return [spawnSync('tasklist', ['/fo', 'csv', '/v',
         '/fi', 'ImageName eq chrome.exe',
         '/fi', 'Status eq unknown'
