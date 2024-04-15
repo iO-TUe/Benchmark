@@ -10,16 +10,20 @@ async function flows(base, name, url, options) {
     const page = await browser.newPage()
     const flow = await startFlow(page, flowConfig)
 
-    await flow.navigate(url + '/todo')
-
-    await flow.startTimespan({ name: 'add' })
+    await flow.startTimespan({ name: 'LoadInteract' })
+    await page.goto(url + '/todo')
+    // await flow.navigate(url + '/todo')
+    
+    await page.waitForSelector('#input')
     for (let i = 0; i < 5; i++) {
-        const txt = 'Item ' + i
-        await page.type('#input', txt, { delay: 300 })
+        // @ts-ignore
+        await page.$eval('#input', (el) => el.value = 'Item',)
+        await page.type('#input', " " + i)
+        // await page.keyboard.press('Space')
         await page.keyboard.press('Enter')
-        await page.waitForSelector(`li[data-id="${txt}"]`)
-        await page.$eval(`li[data-id="${txt}"]`, (el, txt) =>
-            el.childNodes[0].textContent == txt, txt)
+        await page.waitForSelector(`li[data-id="Item ${i}"]`)
+        await page.$eval(`li[data-id="Item ${i}"]`, (el, i) =>
+            el.childNodes[0].textContent == `Item ${i}`, i)
     }
     await flow.endTimespan()
 

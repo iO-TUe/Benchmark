@@ -5,11 +5,12 @@ import { spawnSync } from 'node:child_process';
 import { basename } from 'path';
 import { afterAll, beforeAll, bench } from "vitest";
 
-
-const iterations = 50
-const warmupIterations = 5
-// const implementations = ['Qwik', 'Svelte'],
-const implementations = ['Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
+/** @type {'h' | 'd' | 'v'} */
+const dh = 'v'
+const iterations = 3
+const warmupIterations = 1
+const implementations = ['React', 'Next'],
+    // const implementations = ['Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
 /**
@@ -73,11 +74,10 @@ const flowConfig = {
 function setup(fn, base) {
     base = `./tmp/${basename(base).split('.')[0]}`
     implementations.forEach((name) => bench(name, () => fn(base, name, `https://io-${name.toLowerCase()}.web.app`,
-        { devtools: false, protocolTimeout: 180_000 }), { iterations, warmupIterations, warmupTime: 1 }))
+        { headless: dh == 'h', devtools: dh == 'd', protocolTimeout: 240_000 }), { iterations, warmupIterations }))
 
     beforeAll(() => {
         rmSync(base, { recursive: true, force: true })
-        // mkdirSync('./tmp')
         mkdirSync(base)
         mkdirSync(`${base}/lighthouse`)
         spawnSync('taskkill', ['/fi', 'ImageName eq chrome.exe', '/F']);
