@@ -6,11 +6,11 @@ import { basename } from 'path';
 import { afterAll, beforeAll, bench } from "vitest";
 
 /** @type {'h' | 'd' | 'v'} */
-const dh = 'v'
-const iterations = 3
+const dh = 'd'
+const iterations = 1
 const warmupIterations = 1
-const implementations = ['React', 'Next'],
-    // const implementations = ['Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
+// const implementations = ['Nuxt'],
+const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'TUe', 'Vue'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
 /**
@@ -36,9 +36,9 @@ const flowConfig = {
     config: {
         extends: 'lighthouse:default',
         settings: {
-            // throttling: {
-            //     cpuSlowdownMultiplier: 1
-            // },
+            throttling: {
+                cpuSlowdownMultiplier: 1
+            },
             throttlingMethod: 'devtools',
             maxWaitForLoad: 90_000,
             onlyCategories: ['performance'],
@@ -88,9 +88,11 @@ function setup(fn, base) {
         const warmup = runs[name].length - iterations
         if (results.length === 0) return
         const lhr = results.slice(warmup).map(flow => flow.steps[0].lhr)
-        const lhri = warmup + lhr.indexOf(computeMedianRun(lhr))
-        writeFileSync(`${base}/${name}LHR - [${lhri}].json`, JSON.stringify(results[lhri].steps, null, '\t'))
-        writeFileSync(`${base}/${name}LHR - [${lhri}].html`, generateReport(results[lhri], 'html'))
+        if (lhr[0].gatherMode == 'navigation') {
+            const lhri = warmup + lhr.indexOf(computeMedianRun(lhr))
+            writeFileSync(`${base}/${name}LHR - [${lhri}].json`, JSON.stringify(results[lhri].steps, null, '\t'))
+            writeFileSync(`${base}/${name}LHR - [${lhri}].html`, generateReport(results[lhri], 'html'))
+        }
 
         let usage = readFileSync(`${base}/${name}CPU.csv`, { encoding: 'utf-8' }).split('\n')
         if (usage.length === 2) return

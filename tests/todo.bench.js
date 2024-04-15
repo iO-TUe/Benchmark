@@ -10,10 +10,10 @@ async function flows(base, name, url, options) {
     const page = await browser.newPage()
     const flow = await startFlow(page, flowConfig)
 
-    await flow.startTimespan({ name: 'LoadInteract' })
-    await page.goto(url + '/todo')
+    // await flow.startTimespan({ name: 'LoadInteract' })
+    await page.goto(url + '/todo', { waitUntil: 'networkidle0' })
     // await flow.navigate(url + '/todo')
-    
+
     await page.waitForSelector('#input')
     for (let i = 0; i < 5; i++) {
         // @ts-ignore
@@ -25,7 +25,7 @@ async function flows(base, name, url, options) {
         await page.$eval(`li[data-id="Item ${i}"]`, (el, i) =>
             el.childNodes[0].textContent == `Item ${i}`, i)
     }
-    await flow.endTimespan()
+    // await flow.endTimespan()
 
     await flow.startTimespan({ name: 'remove' })
     while (await page.$eval('.list', (el) => el.childElementCount > 0)) {
