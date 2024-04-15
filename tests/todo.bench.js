@@ -21,6 +21,7 @@ async function flows(base, name, url, options) {
         await page.type('#input', " " + i)
         // await page.keyboard.press('Space')
         await page.keyboard.press('Enter')
+        await page.keyboard.press('Enter')
         await page.waitForSelector(`li[data-id="Item ${i}"]`)
         await page.$eval(`li[data-id="Item ${i}"]`, (el, i) =>
             el.childNodes[0].textContent == `Item ${i}`, i)

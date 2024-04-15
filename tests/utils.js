@@ -6,10 +6,10 @@ import { basename } from 'path';
 import { afterAll, beforeAll, bench } from "vitest";
 
 /** @type {'h' | 'd' | 'v'} */
-const dh = 'd'
-const iterations = 1
-const warmupIterations = 1
-// const implementations = ['Nuxt'],
+const dh = 'h'
+const iterations = 10
+const warmupIterations = 5
+// const implementations = ['Qwik'],
 const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'TUe', 'Vue'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
@@ -36,9 +36,9 @@ const flowConfig = {
     config: {
         extends: 'lighthouse:default',
         settings: {
-            throttling: {
-                cpuSlowdownMultiplier: 1
-            },
+            // throttling: {
+            //     cpuSlowdownMultiplier: 1
+            // },
             throttlingMethod: 'devtools',
             maxWaitForLoad: 90_000,
             onlyCategories: ['performance'],
