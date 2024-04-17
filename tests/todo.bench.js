@@ -10,25 +10,19 @@ async function flows(base, name, url, options) {
     const page = await browser.newPage()
     const flow = await startFlow(page, flowConfig)
 
-    // await flow.startTimespan({ name: 'LoadInteract' })
-    await page.goto(url + '/todo', { waitUntil: 'networkidle0' })
+    await flow.startTimespan({ name: 'LoadInteract' })
+    await page.goto(url + '/todo', { waitUntil: 'domcontentloaded' })
     // await flow.navigate(url + '/todo')
 
-    await page.waitForSelector('#input')
+    await page.waitForSelector('#input:enabled')
     for (let i = 0; i < 5; i++) {
-        // @ts-ignore
-        await page.$eval('#input', (el) => el.value = 'Item',)
-        await page.type('#input', " " + i)
-        // await page.keyboard.press('Space')
-        await page.keyboard.press('Enter')
-        await page.keyboard.press('Enter')
+        await page.type('#input', "Item " + i, { delay: 100 })
+        await page.keyboard.press('Enter', { delay: 300 })
         await page.waitForSelector(`li[data-id="Item ${i}"]`)
         await page.$eval(`li[data-id="Item ${i}"]`, (el, i) =>
             el.childNodes[0].textContent == `Item ${i}`, i)
     }
-    // await flow.endTimespan()
 
-    await flow.startTimespan({ name: 'remove' })
     while (await page.$eval('.list', (el) => el.childElementCount > 0)) {
         await page.click(`li[data-id] button`)
     }

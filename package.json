@@ -3,12 +3,12 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "vitest bench --reporter=json --run ./tests/",
+    "test": "vitest bench --reporter=json --run ./tests/todo.bench.js",
     "deploy": "firebase deploy"
   },
   "devDependencies": {
-    "lighthouse": "^11.7.0",
-    "puppeteer": "^22.6.2",
-    "vitest": "^1.4.0"
+    "lighthouse": "^11.7.1",
+    "puppeteer": "^22.6.5",
+    "vitest": "^1.5.0"
   }
 }

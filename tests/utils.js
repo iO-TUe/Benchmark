@@ -7,9 +7,9 @@ import { afterAll, beforeAll, bench } from "vitest";
 
 /** @type {'h' | 'd' | 'v'} */
 const dh = 'h'
-const iterations = 10
-const warmupIterations = 5
-// const implementations = ['Qwik'],
+const iterations = 5
+const warmupIterations = 2
+// const implementations = ['Nuxt'],
 const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'TUe', 'Vue'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
@@ -36,9 +36,9 @@ const flowConfig = {
     config: {
         extends: 'lighthouse:default',
         settings: {
-            // throttling: {
-            //     cpuSlowdownMultiplier: 1
-            // },
+            throttling: {
+                cpuSlowdownMultiplier: 1
+            },
             throttlingMethod: 'devtools',
             maxWaitForLoad: 90_000,
             onlyCategories: ['performance'],
@@ -74,7 +74,7 @@ const flowConfig = {
 function setup(fn, base) {
     base = `./tmp/${basename(base).split('.')[0]}`
     implementations.forEach((name) => bench(name, () => fn(base, name, `https://io-${name.toLowerCase()}.web.app`,
-        { headless: dh == 'h', devtools: dh == 'd', protocolTimeout: 240_000 }), { iterations, warmupIterations }))
+        { headless: dh == 'h', devtools: dh == 'd', protocolTimeout: 240_000 }), { iterations, warmupIterations, time: 1, warmupTime: 1 }))
 
     beforeAll(() => {
         rmSync(base, { recursive: true, force: true })
