@@ -10,25 +10,32 @@ async function flows(base, name, url, options) {
     const page = await browser.newPage()
     const flow = await startFlow(page, flowConfig)
 
+    let p = performance.now()
     await flow.startTimespan({ name: 'LoadInteract' })
-    await page.goto(url + '/todo', { waitUntil: 'domcontentloaded' })
-    // await flow.navigate(url + '/todo')
+    await page.goto(url, { waitUntil: 'domcontentloaded' })
+    let l = performance.now() - p
 
     await page.waitForSelector('#input:enabled')
+    let h = performance.now() - p - l
     for (let i = 0; i < 5; i++) {
         await page.type('#input', "Item " + i, { delay: 100 })
+        
         await page.keyboard.press('Enter', { delay: 300 })
         await page.waitForSelector(`li[data-id="Item ${i}"]`)
         await page.$eval(`li[data-id="Item ${i}"]`, (el, i) =>
             el.childNodes[0].textContent == `Item ${i}`, i)
     }
+    let i = performance.now() - p - l - h
 
     while (await page.$eval('.list', (el) => el.childElementCount > 0)) {
         await page.click(`li[data-id] button`)
     }
     await flow.endTimespan()
 
-    saveResults(base, name, flow, 2)
+    let e = performance.now() - p
+
+    console.log(name, `l:${l};h:${h};i:${i};t:${e}`)
+    saveResults(base, name, flow, 0)
 
     await browser.close()
 }
