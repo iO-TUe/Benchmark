@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "test": "vitest bench --reporter=json --run ./tests/todo.bench.js",
-    "deploy": "firebase deploy"
+    "deploy": "node deploy.js"
   },
   "devDependencies": {
     "lighthouse": "^11.7.1",
