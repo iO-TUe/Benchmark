@@ -7,9 +7,9 @@ import { afterAll, beforeAll, bench } from "vitest";
 
 /** @type {'h' | 'd' | 'v'} */
 const hdlss = 'h'
-const iterations = 10
-const warmupIterations = 1
-const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'TUe', 'Vue'],
+const iterations = 25
+const warmupIterations = 3
+const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
     // const implementations = ['Qwik', 'Svelte'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
@@ -73,7 +73,7 @@ const flowConfig = {
 */
 function setup(fn, base) {
     base = `./tmp/${basename(base).split('.')[0]}`
-    implementations.forEach((name) => bench(name, () => fn(base, name, `http://localhost:4321/${name.toLowerCase()}`,
+    implementations.forEach((name) => bench(name, () => fn(base, name, `https://io-${name.toLowerCase()}.web.app`,
         { headless: hdlss == 'h', devtools: hdlss == 'd', protocolTimeout: 240_000 }), { iterations, warmupIterations }))
 
     beforeAll(() => {
@@ -124,20 +124,24 @@ function usage(threshold = 3) {
 /**
  * Save results of this run to the filesystem. 
  * 
- * To get the differnce between two moments, a previous call to {@link usage()} can be provided as final argument.
- * 
- * @param {string} base 
- * @param {string} name 
- * @param {import("lighthouse").UserFlow} flow 
+ * To get the differnce between two moments, a previous call to 
+ * {@link usage ()}
+ *  can be provided as final argument.
+ * @param {string} base
+ * @param {string} name
+ * @param {import("lighthouse").UserFlow} flow
  * @param {number} threshold The minimum of CPU Time to filter on
- * @param {Array} usg Previous call to {@link usage()}
-*/
+ * @param {Array} usg Previous call to {@link usage ()}
+ */
 async function saveResults(base, name, flow, threshold = undefined, usg = undefined) {
     const iter = runs[name].length
 
     if (usg) usg = usg.reduce((obj, [pid, mem, cpu]) => ({ ...obj, [pid]: [mem, cpu] }), {})
 
-    if (iter === 0) writeFileSync(`${base}/${name}CPU.csv`, 'PID;Memory;CPU;i\n')
+    if (iter === 0) {
+        writeFileSync(`${base}/${name}CPU.csv`, 'PID;Memory;CPU;i\n')
+        writeFileSync(`${base}/${name}PRF.csv`, 'Load;Hydrate;Interact;Total\n')
+    }
     usage(threshold)[0].forEach(([pid, mem, cpu]) => {
         if (usg && usg[pid]) {
             mem = `${(+mem.split(' ')[0] * 1000 - +usg[pid][0].split(' ')[0] * 1000) / 1000} K`
