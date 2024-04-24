@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "test": "vitest bench --reporter=json --run ./tests/todo.bench.js",
+    "generate": "node ./generator/counter.gen.js",
     "deploy": "node deploy.js"
   },
   "devDependencies": {
