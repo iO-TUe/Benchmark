@@ -6,11 +6,11 @@ import { basename } from 'path';
 import { afterAll, beforeAll, bench } from "vitest";
 
 /** @type {'h' | 'd' | 'v'} */
-const headless = 'h'
-const iterations = 2
+const hdlss = 'h'
+const iterations = 10
 const warmupIterations = 1
-const implementations = ['Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
-    // const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'TUe', 'Vue'],
+const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'TUe', 'Vue'],
+    // const implementations = ['Qwik', 'Svelte'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
 /**
@@ -36,9 +36,9 @@ const flowConfig = {
     config: {
         extends: 'lighthouse:default',
         settings: {
-            throttling: {
-                cpuSlowdownMultiplier: 1
-            },
+            // throttling: {
+            //     cpuSlowdownMultiplier: 2
+            // },
             throttlingMethod: 'devtools',
             maxWaitForLoad: 90_000,
             onlyCategories: ['performance'],
@@ -74,13 +74,13 @@ const flowConfig = {
 function setup(fn, base) {
     base = `./tmp/${basename(base).split('.')[0]}`
     implementations.forEach((name) => bench(name, () => fn(base, name, `http://localhost:4321/${name.toLowerCase()}`,
-        { headless: headless == 'h', devtools: headless == 'd', protocolTimeout: 240_000 }), { iterations, warmupIterations }))
+        { headless: hdlss == 'h', devtools: hdlss == 'd', protocolTimeout: 240_000 }), { iterations, warmupIterations }))
 
     beforeAll(() => {
         rmSync(base, { recursive: true, force: true })
         mkdirSync(base)
         mkdirSync(`${base}/lighthouse`)
-        if (headless == 'h') spawnSync('taskkill', ['/fi', 'ImageName eq chrome.exe', '/F']);
+        if (hdlss == 'h') spawnSync('taskkill', ['/fi', 'ImageName eq chrome.exe', '/F']);
     })
 
 
