@@ -16,7 +16,7 @@ async function flows(base, name, url, options) {
 
     await flow.startTimespan({ name: 'Add' })
     await page.click('[role=feed]')
-    await page.waitForFunction(() => document.querySelectorAll("[role=feed]").length == 8191, { timeout: 0 })
+    await page.waitForFunction(() => document.querySelectorAll("[role=feed]").length == 2047, { timeout: 0 })
     await flow.endTimespan()
 
     saveResults(base, name, flow, n, usg)
