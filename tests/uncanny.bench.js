@@ -10,9 +10,9 @@ async function flows(base, name, url, options) {
     const page = await browser.newPage()
     const flow = await startFlow(page, flowConfig)
 
-    await flow.navigate(url + '/load')
+    await flow.startTimespan({ name: 'UncannyInteract' })
+    await page.goto(url + '/load', { waitUntil: 'domcontentloaded' })
 
-    await flow.startTimespan({ name: 'Decrease' })
     await page.click('button[aria-label="-"')
     await page.waitForFunction(() => +document.querySelector("[class*=value]").textContent == 49)
     await flow.endTimespan()

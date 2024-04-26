@@ -7,10 +7,9 @@ import { afterAll, beforeAll, bench } from "vitest";
 
 /** @type {'h' | 'd' | 'v'} */
 const hdlss = 'h'
-const iterations = 25
-const warmupIterations = 3
+const iterations = 80
+const warmupIterations = 5
 const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
-    // const implementations = ['Qwik', 'Svelte'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
 /**
@@ -83,7 +82,6 @@ function setup(fn, base) {
         if (hdlss == 'h') spawnSync('taskkill', ['/fi', 'ImageName eq chrome.exe', '/F']);
     })
 
-
     afterAll(() => Object.entries(runs).forEach(([name, results]) => {
         const warmup = runs[name].length - iterations
         if (results.length === 0) return
@@ -110,7 +108,7 @@ function setup(fn, base) {
  * @param {number} threshold 
  * @returns {[Array, number]} Tuples of PID, Mem. usage and CPU time. And the value of the threshold used.
 */
-function usage(threshold = 3) {
+function usage(threshold = 10) {
     return [spawnSync('tasklist', ['/fo', 'csv', '/v',
         '/fi', 'ImageName eq chrome.exe',
         '/fi', 'Status eq unknown'
