@@ -10,9 +10,9 @@ async function flows(base, name, url, options) {
     const page = await browser.newPage()
     const flow = await startFlow(page, flowConfig)
 
-    await flow.navigate(url + '/load')
+    await flow.startTimespan({ name: 'Interact' })
+    await page.goto(url + '/load', { waitUntil: 'domcontentloaded' })
 
-    await flow.startTimespan({ name: 'Increase' })
     let value
     while ((value = await page.$eval("[class*=value]", el => +el.textContent)) < 60) {
         await page.click('button[aria-label="+"')

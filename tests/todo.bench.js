@@ -34,7 +34,7 @@ async function flows(base, name, url, options) {
 
     let e = performance.now() - p
 
-    saveResults(base, name, flow, 0)
+    saveResults(base, name, flow)
     appendFileSync(`${base}/${name}PRF.csv`, `${l};${h};${i};${e}\n`)
 
     await browser.close()
