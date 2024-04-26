@@ -17,10 +17,10 @@ async function flows(base, name, url, options) {
     await page.goto(url + '/load', { waitUntil: 'domcontentloaded' })
     let l = performance.now() - p
 
-    const { result: { objectId: window } } = await cdp.send('Runtime.evaluate', { expression: 'window' })
-    const { result: { objectId: button } } = await cdp.send('Runtime.evaluate', { expression: 'document.querySelector("button")' })
-    while (!(await cdp.send('DOMDebugger.getEventListeners', { objectId: window })).listeners.concat(
-        (await cdp.send('DOMDebugger.getEventListeners', { objectId: button })).listeners)
+    const { result: { objectId: docId } } = await cdp.send('Runtime.evaluate', { expression: 'document' })
+    const { result: { objectId: butId } } = await cdp.send('Runtime.evaluate', { expression: 'document.querySelector("button")' })
+    while (!(await cdp.send('DOMDebugger.getEventListeners', { objectId: docId })).listeners.concat(
+        (await cdp.send('DOMDebugger.getEventListeners', { objectId: butId })).listeners)
         .find(({ type }) => type == 'click')) { }
     let h = performance.now() - p - l
 
