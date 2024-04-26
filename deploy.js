@@ -6,10 +6,10 @@ import { fileURLToPath } from "url";
 const path = dirname(dirname(fileURLToPath(import.meta.url)))
 
 /**
- * Deploy all project in the parent folder
+ * Deploy all projects in the parent folder
  */
 readdirSync(path).forEach(dir => {
-    if (dir && dir != 'benchmark' && dir != 'astro') {
+    if (dir && !['benchmark', 'astro'].includes(dir)) {
         spawnSync('npm.cmd', ['run', 'deploy'], {
             env: process.env,
             cwd: join(path, dir),
