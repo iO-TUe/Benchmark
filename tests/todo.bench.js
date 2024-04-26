@@ -19,7 +19,6 @@ async function flows(base, name, url, options) {
     let h = performance.now() - p - l
     for (let i = 0; i < 5; i++) {
         await page.type('#input', "Item " + i, { delay: 100 })
-
         await page.keyboard.press('Enter', { delay: 300 })
         await page.waitForSelector(`li[data-id="Item ${i}"]`)
         await page.$eval(`li[data-id="Item ${i}"]`, (el, i) =>

@@ -7,7 +7,7 @@ import { afterAll, beforeAll, bench } from "vitest";
 
 /** @type {'h' | 'd' | 'v'} */
 const hdlss = 'h'
-const iterations = 5
+const iterations = 8
 const warmupIterations = 1
 // const implementations = ['React'],
 const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
