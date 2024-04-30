@@ -7,10 +7,10 @@ import { afterAll, beforeAll, bench } from "vitest";
 
 /** @type {'h' | 'd' | 'v'} */
 const hdlss = 'h'
-const iterations = 80
-const warmupIterations = 5
-// const implementations = ['React'],
-const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
+const iterations = 8
+const warmupIterations = 0
+// const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
+const implementations = ['Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
 /**
@@ -73,7 +73,7 @@ const flowConfig = {
 */
 function setup(fn, base) {
     base = `./tmp/${basename(base).split('.')[0]}`
-    implementations.forEach((name) => bench(name, () => fn(base, name, `https://io-${name.toLowerCase()}.web.app`,
+    implementations.forEach((name) => bench(name, () => fn(base, name, `https://io-tue.web.app/${name.toLowerCase()}`,
         { headless: hdlss == 'h', devtools: hdlss == 'd', protocolTimeout: 240_000 }), { iterations, warmupIterations }))
 
     beforeAll(() => {

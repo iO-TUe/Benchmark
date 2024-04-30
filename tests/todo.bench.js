@@ -12,7 +12,7 @@ async function flows(base, name, url, options) {
 
     let p = performance.now()
     await flow.startTimespan({ name: 'LoadInteract' })
-    await page.goto(url + '/todo', { waitUntil: 'domcontentloaded' })
+    await page.goto(url, { waitUntil: 'domcontentloaded' })
     let l = performance.now() - p
 
     await page.waitForSelector('#input:enabled')

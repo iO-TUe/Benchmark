@@ -3,7 +3,6 @@ import { existsSync, mkdirSync, readFile, rmSync, writeFile } from "fs"
 const duplicates = 50
 const comp = 'counter'
 const path = 'src/components'
-const astro = '../astro/' + path
 
 /**
  * @param {string} name
@@ -14,30 +13,25 @@ const astro = '../astro/' + path
  * @param {string[]} amble
  */
 export function generate(name, ext, tags, amble, component, props) {
-    const astropath = `${astro}/${name}/${comp}`
     const fullpath = `../${name}/${path}/${comp}`
     const fullpathExt = `${fullpath}.${ext}`
     readFile(fullpathExt, (err, file) => {
         if (err) throw (err)
 
         if (existsSync(fullpath)) rmSync(fullpath, { recursive: true, force: true })
-        if (existsSync(astropath)) rmSync(astropath, { recursive: true, force: true })
         mkdirSync(fullpath)
-        mkdirSync(astropath)
 
         let oc = file.toString().replaceAll('./', '../')
         for (let i = 0; i < duplicates; i++) {
             writeFile(`${fullpath}/${comp}${i}.${ext}`, oc, writeCB)
-            writeFile(`${astropath}${i}.${ext}`, oc, writeCB)
         }
-        let nc = `${amble[0] ?? ''}
+
+        writeFile(fullpath + '.gen.' + ext, `${amble[0] ?? ''}
 ${duplicate((i) => `import ${comp.toUpperCase()}${i} from './${comp}/${comp}${i}${ext != 'tsx' ? `.${ext}` : ''}'`)}
 
 ${component}${amble[1] ?? ' '}${tags[0]}
   ${duplicate((i) => `<${comp.toUpperCase()}${i} ${props} />`)}
-${tags[1]}`
-        writeFile(fullpath + '.gen.' + ext, nc, writeCB)
-        writeFile(astropath + '.gen.' + ext, nc, writeCB)
+${tags[1]}`, writeCB)
     })
 }
 
