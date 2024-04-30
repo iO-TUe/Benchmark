@@ -3,14 +3,15 @@ import { defaultConfig, generateReport } from 'lighthouse';
 import { computeMedianRun } from 'lighthouse/core/lib/median-run';
 import { spawnSync } from 'node:child_process';
 import { basename } from 'path';
+import { Page } from "puppeteer";
 import { afterAll, beforeAll, bench } from "vitest";
 
 /** @type {'h' | 'd' | 'v'} */
 const hdlss = 'h'
 const iterations = 80
 const warmupIterations = 5
-// const implementations = ['React'],
-const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
+// const implementations = ['Nuxt'],
+    const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
 /**
@@ -25,10 +26,24 @@ const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'Vu
 */
 
 /**
- * Uses {@link defaultConfig}.
+ * Wait until an {@link event} is attached to the document or an {@link element}.
  * 
- * To speed up tests the RootCauses & TraceElements artifacts should manually be disabled 
- * in the depency itself. Unfortunetely, this cannot be done automatically without forking the library.
+ * @param {string} event 
+ * @param {string} [element] 
+ */
+Page.prototype.waitForListener = async function (event, element = 'button') {
+    const cdp = await this.createCDPSession()
+    const { result: { objectId: docId } } = await cdp.send('Runtime.evaluate', { expression: 'document' })
+    const { result: { objectId: elId } } = await cdp.send('Runtime.evaluate', { expression: `document.querySelector("${element}")` })
+
+    while (!(await cdp.send('DOMDebugger.getEventListeners', { objectId: docId })).listeners.concat(
+        (await cdp.send('DOMDebugger.getEventListeners', { objectId: elId })).listeners).find(({ type }) => type == event)) { }
+}
+
+// To speed up timespan evaluation the RootCauses & TraceElements artifacts should be disabled.
+defaultConfig.artifacts = defaultConfig.artifacts.filter(({ id }) => !['RootCauses', 'TraceElements'].includes(id))
+/**
+ * Uses {@link defaultConfig}.
  * 
  * @type {import('lighthouse').UserFlow.Options}
 */
@@ -36,9 +51,9 @@ const flowConfig = {
     config: {
         extends: 'lighthouse:default',
         settings: {
-            // throttling: {
-            //     cpuSlowdownMultiplier: 2
-            // },
+            throttling: {
+                // cpuSlowdownMultiplier: 2
+            },
             throttlingMethod: 'devtools',
             maxWaitForLoad: 90_000,
             onlyCategories: ['performance'],
@@ -220,7 +235,6 @@ function computeMedianDistance(cpu, medianCpu, medianMem) {
 
     return distanceCpu ** 2 + distanceMem ** 2
 }
-
 
 export { flowConfig, saveResults, setup, usage };
 

@@ -9,7 +9,6 @@ setup(flows, __filename)
 async function flows(base, name, url, options) {
     const browser = await launch(options)
     const page = await browser.newPage()
-    const cdp = await page.createCDPSession()
     const flow = await startFlow(page, flowConfig)
 
     let p = performance.now()
@@ -17,11 +16,7 @@ async function flows(base, name, url, options) {
     await page.goto(url + '/load', { waitUntil: 'domcontentloaded' })
     let l = performance.now() - p
 
-    const { result: { objectId: docId } } = await cdp.send('Runtime.evaluate', { expression: 'document' })
-    const { result: { objectId: butId } } = await cdp.send('Runtime.evaluate', { expression: 'document.querySelector("button")' })
-    while (!(await cdp.send('DOMDebugger.getEventListeners', { objectId: docId })).listeners.concat(
-        (await cdp.send('DOMDebugger.getEventListeners', { objectId: butId })).listeners)
-        .find(({ type }) => type == 'click')) { }
+    await page.waitForListener('click')
     let h = performance.now() - p - l
 
     await page.click('button[aria-label="-"]')
