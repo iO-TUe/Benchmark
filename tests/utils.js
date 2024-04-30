@@ -38,8 +38,9 @@ Page.prototype.waitForListener = async function (element, event) {
     const { result: { objectId: docId } } = await cdp.send('Runtime.evaluate', { expression: 'document' })
     const { result: { objectId: elId } } = await cdp.send('Runtime.evaluate', { expression: `document.querySelector("${element}")` })
 
-    while (!(await cdp.send('DOMDebugger.getEventListeners', { objectId: docId })).listeners.concat(
-        (await cdp.send('DOMDebugger.getEventListeners', { objectId: elId })).listeners).find(({ type }) => type == event)) { }
+    while (!(await cdp.send('DOMDebugger.getEventListeners', { objectId: docId })).listeners
+        .concat((await cdp.send('DOMDebugger.getEventListeners', { objectId: elId })).listeners)
+        .find(({ type }) => type == event)) { }
 }
 
 // To speed up timespan evaluation the RootCauses & TraceElements artifacts should be disabled.
