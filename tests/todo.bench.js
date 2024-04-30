@@ -1,7 +1,7 @@
 import { appendFileSync } from "fs";
 import { startFlow } from 'lighthouse';
 import { launch } from 'puppeteer';
-import { flowConfig, saveResults, setup } from './utils';
+import { flowConfig, saveResults, setup, waitForEventListener } from './utils';
 setup(flows, __filename)
 
 /** @type {import('./utils').Flows} */
@@ -15,8 +15,9 @@ async function flows(base, name, url, options) {
     await page.goto(url, { waitUntil: 'domcontentloaded' })
     let l = performance.now() - p
 
-    await page.waitForSelector('#input:enabled')
+    await waitForEventListener(await page.createCDPSession())
     let h = performance.now() - p - l
+
     for (let i = 0; i < 5; i++) {
         await page.type('#input', "Item " + i, { delay: 100 })
         await page.keyboard.press('Enter', { delay: 300 })

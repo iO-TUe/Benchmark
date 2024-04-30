@@ -6,11 +6,11 @@ import { basename } from 'path';
 import { afterAll, beforeAll, bench } from "vitest";
 
 /** @type {'h' | 'd' | 'v'} */
-const hdlss = 'h'
+const hdlss = 'v'
 const iterations = 8
 const warmupIterations = 0
 // const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
-const implementations = ['Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
+const implementations = ['Svelte'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
 /**
@@ -36,9 +36,9 @@ const flowConfig = {
     config: {
         extends: 'lighthouse:default',
         settings: {
-            // throttling: {
-            //     cpuSlowdownMultiplier: 2
-            // },
+            throttling: {
+                cpuSlowdownMultiplier: 1
+            },
             throttlingMethod: 'devtools',
             maxWaitForLoad: 90_000,
             onlyCategories: ['performance'],
@@ -221,6 +221,22 @@ function computeMedianDistance(cpu, medianCpu, medianMem) {
     return distanceCpu ** 2 + distanceMem ** 2
 }
 
+/**
+ * Wait until an {@link event} is attached to an {@link element}.
+ * 
+ * By default it looks for a click event on the document & button element.
+ * 
+ * @param {import('puppeteer').CDPSession} cdp
+ * @param {string} event 
+ * @param {string} element
+ */
+async function waitForEventListener(cdp, event = 'click', element = 'button') {
+    const { result: { objectId: docId } } = await cdp.send('Runtime.evaluate', { expression: 'document' })
+    const { result: { objectId: butId } } = await cdp.send('Runtime.evaluate', { expression: `document.querySelector("${element}")` })
 
-export { flowConfig, saveResults, setup, usage };
+    while (!(await cdp.send('DOMDebugger.getEventListeners', { objectId: docId })).listeners.concat(
+        (await cdp.send('DOMDebugger.getEventListeners', { objectId: butId })).listeners).find(({ type }) => type == event)) { }
+}
+
+export { flowConfig, saveResults, setup, usage, waitForEventListener };
 
