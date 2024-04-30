@@ -26,7 +26,7 @@ async function flows(base, name, url, options) {
 
     let value
     while ((value = await page.$eval("[class*=value]", el => +el.textContent)) < 60) {
-        await page.click('button[aria-label="+"')
+        await page.click('button[aria-label="+"]')
         await page.waitForFunction((value) => +document.querySelector("[class*=value]").textContent == ++value, {}, value)
     }
     const i = performance.now() - p - l - h

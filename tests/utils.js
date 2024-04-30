@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "fs";
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "fs";
 import { defaultConfig, generateReport } from 'lighthouse';
 import { computeMedianRun } from 'lighthouse/core/lib/median-run';
 import { spawnSync } from 'node:child_process';
@@ -7,8 +7,8 @@ import { afterAll, beforeAll, bench } from "vitest";
 
 /** @type {'h' | 'd' | 'v'} */
 const hdlss = 'h'
-const iterations = 8
-const warmupIterations = 1
+const iterations = 80
+const warmupIterations = 5
 // const implementations = ['React'],
 const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
@@ -77,6 +77,7 @@ function setup(fn, base) {
         { headless: hdlss == 'h', devtools: hdlss == 'd', protocolTimeout: 240_000 }), { iterations, warmupIterations }))
 
     beforeAll(() => {
+        if (!existsSync('./tmp')) mkdirSync('./tmp')
         rmSync(base, { recursive: true, force: true })
         mkdirSync(base)
         mkdirSync(`${base}/lighthouse`)
@@ -138,12 +139,12 @@ async function saveResults(base, name, flow, threshold = undefined, usg = undefi
     if (usg) usg = usg.reduce((obj, [pid, mem, cpu]) => ({ ...obj, [pid]: [mem, cpu] }), {})
 
     if (iter === 0) {
-        writeFileSync(`${base}/${name}CPU.csv`, 'PID;Memory;CPU;i\n')
+        writeFileSync(`${base}/${name}CPU.csv`, 'PID;Memory Usage;CPU;i\n')
         writeFileSync(`${base}/${name}PRF.csv`, 'Load;Hydrate;Interact;Total\n')
     }
     usage(threshold)[0].forEach(([pid, mem, cpu]) => {
         if (usg && usg[pid]) {
-            mem = `${(+mem.split(' ')[0] * 1000 - +usg[pid][0].split(' ')[0] * 1000) / 1000} K`
+            mem += ` (${(+mem.split(' ')[0] * 1000 - +usg[pid][0].split(' ')[0] * 1000) / 1000} K)`
             cpu -= usg[pid][1]
         }
         appendFileSync(`${base}/${name}CPU.csv`, `${pid};${mem};${cpu};${iter}\n`);
@@ -171,6 +172,9 @@ function computeMedianUsage(usage) {
 
     const nCpuMem = normalCpuMem.sort((a, b) => computeMedianDistance(a, medianCpu, medianMem) -
         computeMedianDistance(b, medianCpu, medianMem))[0]
+
+    // console.log(usage)
+    // console.log(nCpuMem)
 
     // Values are denormalized using the max values of the original array
     return [nCpuMem[0] * maxCpu, nCpuMem[1] * maxMem]

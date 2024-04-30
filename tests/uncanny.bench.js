@@ -24,7 +24,7 @@ async function flows(base, name, url, options) {
         .find(({ type }) => type == 'click')) { }
     let h = performance.now() - p - l
 
-    await page.click('button[aria-label="-"')
+    await page.click('button[aria-label="-"]')
     await page.waitForFunction(() => +document.querySelector("[class*=value]").textContent == 49)
 
     let i = performance.now() - p - l - h
@@ -32,7 +32,7 @@ async function flows(base, name, url, options) {
 
     let e = performance.now() - p
 
-    saveResults(base, name, flow)
+    saveResults(base, name, flow, 5)
     appendFileSync(`${base}/${name}PRF.csv`, `${l};${h};${i};${e}\n`)
 
     await browser.close()
