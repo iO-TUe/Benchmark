@@ -15,8 +15,9 @@ async function flows(base, name, url, options) {
     await page.goto(url + '/todo', { waitUntil: 'domcontentloaded' })
     let l = performance.now() - p
 
-    await page.waitForSelector('#input:enabled')
+    await page.waitForListener('#input', 'keyup')
     let h = performance.now() - p - l
+    
     for (let i = 0; i < 5; i++) {
         await page.type('#input', "Item " + i, { delay: 100 })
         await page.keyboard.press('Enter', { delay: 300 })

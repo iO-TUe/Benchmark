@@ -11,7 +11,7 @@ const hdlss = 'h'
 const iterations = 80
 const warmupIterations = 5
 // const implementations = ['Nuxt'],
-    const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
+const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
 /**
@@ -28,10 +28,12 @@ const warmupIterations = 5
 /**
  * Wait until an {@link event} is attached to the document or an {@link element}.
  * 
+ * @function waitForListener
+ * @memberof Page
+ * @param {string} element
  * @param {string} event 
- * @param {string} [element] 
  */
-Page.prototype.waitForListener = async function (event, element = 'button') {
+Page.prototype.waitForListener = async function (element, event) {
     const cdp = await this.createCDPSession()
     const { result: { objectId: docId } } = await cdp.send('Runtime.evaluate', { expression: 'document' })
     const { result: { objectId: elId } } = await cdp.send('Runtime.evaluate', { expression: `document.querySelector("${element}")` })

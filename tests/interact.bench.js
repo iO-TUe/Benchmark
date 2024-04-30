@@ -16,7 +16,7 @@ async function flows(base, name, url, options) {
     await page.goto(url + '/load', { waitUntil: 'domcontentloaded' })
     let l = performance.now() - p
 
-    await page.waitForListener('click')
+    await page.waitForListener('button[aria-label="+"]', 'click')
     let h = performance.now() - p - l
 
     let value
