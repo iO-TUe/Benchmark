@@ -9,8 +9,7 @@ import { afterAll, beforeAll, bench } from "vitest";
 /** @type {'h' | 'd' | 'v'} */
 const hdlss = 'h'
 const iterations = 80
-const warmupIterations = 5
-// const implementations = ['Nuxt'],
+// const implementations = ['React'],
 const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
@@ -26,7 +25,7 @@ const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'Vu
 */
 
 /**
- * Wait until an {@link event} is attached to the document or an {@link element}.
+ * Wait until an {@link event} is attached to the document, #root or an {@link element}.
  * 
  * @function waitForListener
  * @memberof Page
@@ -40,11 +39,12 @@ Page.prototype.waitForListener = async function (element, event) {
 
     while (!(await cdp.send('DOMDebugger.getEventListeners', { objectId: docId })).listeners
         .concat((await cdp.send('DOMDebugger.getEventListeners', { objectId: elId })).listeners)
-        .find(({ type }) => type == event)) { }
+        .find(({ type }) => [event, 'invalid'].includes(type))) { }
 }
 
 // To speed up timespan evaluation the RootCauses & TraceElements artifacts should be disabled.
 defaultConfig.artifacts = defaultConfig.artifacts.filter(({ id }) => !['RootCauses', 'TraceElements'].includes(id))
+
 /**
  * Uses {@link defaultConfig}.
  * 
@@ -54,9 +54,7 @@ const flowConfig = {
     config: {
         extends: 'lighthouse:default',
         settings: {
-            throttling: {
-                // cpuSlowdownMultiplier: 2
-            },
+            // throttling: { cpuSlowdownMultiplier: 2 },
             throttlingMethod: 'devtools',
             maxWaitForLoad: 90_000,
             onlyCategories: ['performance'],
@@ -92,7 +90,7 @@ const flowConfig = {
 function setup(fn, base) {
     base = `./tmp/${basename(base).split('.')[0]}`
     implementations.forEach((name) => bench(name, () => fn(base, name, `https://io-${name.toLowerCase()}.web.app`,
-        { headless: hdlss == 'h', devtools: hdlss == 'd', protocolTimeout: 240_000 }), { iterations, warmupIterations }))
+        { headless: hdlss == 'h', devtools: hdlss == 'd', protocolTimeout: 240_000 }), { iterations }))
 
     beforeAll(() => {
         if (!existsSync('./tmp')) mkdirSync('./tmp')
