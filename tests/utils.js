@@ -35,7 +35,7 @@ const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'Vu
 Page.prototype.waitForListener = async function (element, event) {
     const cdp = await this.createCDPSession()
     const { result: { objectId: docId } } = await cdp.send('Runtime.evaluate', { expression: 'document' })
-    const { result: { objectId: elId } } = await cdp.send('Runtime.evaluate', { expression: `document.querySelector("${element}")` })
+    const { result: { objectId: elId } } = await cdp.send('Runtime.evaluate', { expression: `document.querySelector('${element}')` })
 
     while (!(await cdp.send('DOMDebugger.getEventListeners', { objectId: docId })).listeners
         .concat((await cdp.send('DOMDebugger.getEventListeners', { objectId: elId })).listeners)
