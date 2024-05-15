@@ -11,8 +11,6 @@ async function flows(base, name, url, options) {
     const flow = await startFlow(page, flowConfig)
     
     await flow.navigate(url)
-    await flow.navigate(url + '/load')
-    await flow.navigate(url + '/todo')
 
     saveResults(base, name, flow)
 

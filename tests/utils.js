@@ -8,9 +8,9 @@ import { afterAll, beforeAll, bench } from "vitest";
 
 /** @type {'h' | 'd' | 'v'} */
 const hdlss = 'h'
-const iterations = 80
-// const implementations = ['React'],
-const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
+const iterations = 10
+const implementations = ['Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
+    // const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
 /**
@@ -89,7 +89,9 @@ const flowConfig = {
 */
 function setup(fn, base) {
     base = `./tmp/${basename(base).split('.')[0]}`
-    implementations.forEach((name) => bench(name, () => fn(base, name, `https://io-${name.toLowerCase()}.web.app`,
+    const astro = base.endsWith('astro')
+    implementations.forEach((name) => bench(name, () => fn(base, name,
+        `https://io-${astro ? 'tue' : name.toLowerCase()}.web.app${astro ? `/${name.toLowerCase()}` : ''}`,
         { headless: hdlss == 'h', devtools: hdlss == 'd', protocolTimeout: 240_000 }), { iterations }))
 
     beforeAll(() => {
@@ -154,10 +156,7 @@ async function saveResults(base, name, flow, threshold = undefined, usg = undefi
 
     if (usg) usg = usg.reduce((obj, [pid, mem, cpu]) => ({ ...obj, [pid]: [mem, cpu] }), {})
 
-    if (iter === 0) {
-        writeFileSync(`${base}/${name}CPU.csv`, 'PID;Memory Usage;CPU;i\n')
-        writeFileSync(`${base}/${name}PRF.csv`, 'Load;Hydrate;Interact;Total\n')
-    }
+    if (iter === 0) writeFileSync(`${base}/${name}CPU.csv`, 'PID;Memory Usage;CPU;i\n')
     usage(threshold)[0].forEach(([pid, mem, cpu]) => {
         if (usg && usg[pid]) {
             mem += ` (${(+mem.split(' ')[0] * 1000 - +usg[pid][0].split(' ')[0] * 1000) / 1000} K)`
