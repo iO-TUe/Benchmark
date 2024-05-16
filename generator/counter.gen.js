@@ -6,11 +6,11 @@ const path = 'src/components'
 
 /**
  * @param {string} name
- * @param {string} props
- * @param {string} component
- * @param {string[]} tags
  * @param {string} ext
+ * @param {string[]} tags
  * @param {string[]} amble
+ * @param {string} component
+ * @param {string} props
  */
 export function generate(name, ext, tags, amble, component, props) {
     const fullpath = `../${name}/${path}/${comp}`
@@ -23,14 +23,14 @@ export function generate(name, ext, tags, amble, component, props) {
 
         let oc = file.toString().replaceAll('./', '../')
         for (let i = 0; i < duplicates; i++) {
-            writeFile(`${fullpath}/${comp}${i}.${ext}`, oc, writeCB)
+            writeFile(`${fullpath}/${i}.${ext}`, oc, writeCB)
         }
-        writeFile(fullpath + '.gen.' + ext, `${amble[0] + '\n' ?? ''}\
-${duplicate((i) => `import ${comp.toUpperCase()}${i} from './${comp}/${comp}${i}${ext != 'tsx' ? `.${ext}` : ''}'`)}
+        writeFile(fullpath + '.gen.' + ext, `${amble[0] ? `${amble[0]}\n` : ''}\
+${duplicate((i) => `import ${comp.toUpperCase()}${i} from './${comp}/${i}${ext != 'tsx' ? `.${ext}` : ''}'`)}
 
-${component}${amble[1] ?? ' '}${tags[0]}
-  ${duplicate((i) => `<${comp.toUpperCase()}${i} ${props} />`)}
-${tags[1]}`, writeCB)
+${component}${amble[1] ? `\n${amble[1]}\n` : ' '}${tags[0] ?? ''}
+${duplicate((i) => `<${comp.toUpperCase()}${i} ${props} />`)}
+${tags[1] ?? ''}`, writeCB)
     })
 }
 
@@ -53,9 +53,9 @@ generate('react', 'tsx', ['<>', '</>'], [],
 generate('solid', 'tsx', ['<>', '</>'], [],
     'export default (props: { initialValue: number, maxValue: number, recurse: boolean }) =>',
     'initialValue={props.initialValue} maxValue={props.maxValue} recurse={props.recurse}')
-generate('svelte', 'svelte', ['', ''], ['<script lang="ts">', '\n</script>\n'],
+generate('svelte', 'svelte', [], ['<script lang="ts">', '</script>'],
     'export let initialValue: number;\nexport let maxValue: number;\nexport let recurse: boolean;',
     'initialValue={initialValue} maxValue={maxValue} recurse={recurse}')
-generate('vue', 'vue', ['<template>', '</template>'], ['<script setup lang="ts">', '\n</script>\n\n'],
+generate('vue', 'vue', ['<template>', '</template>'], ['<script setup lang="ts">', '</script>\n'],
     'const props = defineProps<{ initialValue: number, maxValue: number, recurse: boolean }>()',
     ':initialValue="props.initialValue" :maxValue="props.maxValue" :recurse="props.recurse"')
