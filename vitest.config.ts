@@ -2,8 +2,10 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
     test: {
+        benchmark: {
+            outputJson: "./tmp/bench.json"
+        },
         bail: 1,
-        outputFile: "./tmp/bench.json",
         testTimeout: 0,
         poolOptions: {
             threads: {
@@ -11,7 +13,6 @@ export default defineConfig({
             }
         },
         silent: false,
-        // disableConsoleIntercept: true,
         logHeapUsage: true
-    },
+    }
 })

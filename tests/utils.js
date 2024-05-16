@@ -8,9 +8,9 @@ import { afterAll, beforeAll, bench } from "vitest";
 
 /** @type {'h' | 'd' | 'v'} */
 const hdlss = 'h'
-const iterations = 10
-const implementations = ['Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
-    // const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
+const iterations = 125
+// const implementations = ['Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
+const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
 
 /**
@@ -54,7 +54,7 @@ const flowConfig = {
     config: {
         extends: 'lighthouse:default',
         settings: {
-            // throttling: { cpuSlowdownMultiplier: 2 },
+            // throttling: { cpuSlowdownMultiplier: 1 },
             throttlingMethod: 'devtools',
             maxWaitForLoad: 90_000,
             onlyCategories: ['performance'],
@@ -88,10 +88,11 @@ const flowConfig = {
 */
 function setup(fn, base) {
     base = `./tmp/${basename(base).split('.')[0]}`
-    const astro = base.endsWith('astro')
-    implementations.forEach((name) => bench(name, () => fn(base, name,
-        `https://io-${astro ? 'tue' : name.toLowerCase()}.web.app${astro ? `/${name.toLowerCase()}` : ''}`,
-        { headless: hdlss == 'h', devtools: hdlss == 'd', protocolTimeout: 240_000 }), { iterations }))
+    const astro = base.endsWith('astro');
+    (astro ? implementations.filter(t => !['Next', 'Nuxt'].includes(t))
+        : implementations).forEach((name) => bench(name, () => fn(base, name,
+            `https://io-${astro ? 'tue' : name.toLowerCase()}.web.app${astro ? `/${name.toLowerCase()}` : ''}`,
+            { headless: hdlss == 'h', devtools: hdlss == 'd', protocolTimeout: 240_000 }), { iterations }))
 
     beforeAll(() => {
         if (!existsSync('./tmp')) mkdirSync('./tmp')

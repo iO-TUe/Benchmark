@@ -10,7 +10,7 @@ async function flows(base, name, url, options) {
     const page = await browser.newPage()
     const flow = await startFlow(page, flowConfig)
 
-    await page.goto(url,{waitUntil: 'networkidle0'})
+    await page.goto(url, { waitUntil: 'networkidle0' })
 
     const [usg, n] = usage(5)
 
