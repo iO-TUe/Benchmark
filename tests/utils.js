@@ -63,7 +63,6 @@ const flowConfig = {
                 'final-screenshot',
                 'non-composited-animations',
                 'cumulative-layout-shift',
-                'layout-shift-elements',
                 'layout-shifts',
                 'uses-long-cache-ttl'
             ],

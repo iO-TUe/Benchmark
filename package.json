@@ -9,8 +9,8 @@
     "deploy": "node deploy.js"
   },
   "devDependencies": {
-    "lighthouse": "^11.7.1",
-    "puppeteer": "^22.6.5",
-    "vitest": "^1.5.0"
+    "lighthouse": "^12.0.0",
+    "puppeteer": "^22.8.2",
+    "vitest": "^1.6.0"
   }
 }
