@@ -3,7 +3,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "vitest bench --run ./tests/lh_base",
+    "test": "vitest bench --run ./tests/",
     "generate": "node ./generator/counter.gen.js",
     "results": "node ./generator/results.gen.js",
     "deploy": "node deploy.js"
