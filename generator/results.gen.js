@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
 
-const dir = './archive/full [80]/tmp'
+const dir = './generator/tmp'
 // readdirSync(dir).filter(f => f.endsWith('].csv')).forEach(file => {
 //     const split = file.split('CPU - [')
 //     split[1] = split[1].split('].csv')[0]
@@ -14,11 +14,12 @@ const dir = './archive/full [80]/tmp'
 // });
 
 
-Object.entries(JSON.parse(readFileSync(`${dir}/bench.json`).toString()).testResults).forEach(([benchmark, arr]) => {
-    console.info(benchmark.toUpperCase())
-    console.table(arr.reduce((obj, { name, ...val }) =>
-        ({ ...obj, [name]: val }), {}), ['hz','min','max', 'mean', 'sd', 'rme', 'sem'])
-})
+JSON.parse(readFileSync(`${dir}/bench.json`).toString()).files
+    .forEach(({ groups: [{ fullName, benchmarks }] }) => {
+        console.info(fullName.slice(6).split('.')[0].toUpperCase())
+        console.table(benchmarks.reduce((obj, { name, ...val }) =>
+            ({ ...obj, [name]: val }), {}), ['min', 'max', 'mean', 'sd', 'rme', 'sem'])
+    })
 
 
 /**

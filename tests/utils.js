@@ -8,7 +8,7 @@ import { afterAll, beforeAll, bench } from "vitest";
 
 /** @type {'h' | 'd' | 'v'} */
 const hdlss = 'h'
-const iterations = 125
+const iterations = 80
 // const implementations = ['Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
 const implementations = ['Next', 'Nuxt', 'Qwik', 'React', 'Solid', 'Svelte', 'Vue'],
     runs = Object.fromEntries(implementations.map(($) => [$, []]))
