@@ -12,5 +12,8 @@
     "lighthouse": "^12.0.0",
     "puppeteer": "^22.8.2",
     "vitest": "^1.6.0"
+  },
+  "dependencies": {
+    "nodeplotlib": "^1.1.2"
   }
 }
