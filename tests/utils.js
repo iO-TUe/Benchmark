@@ -179,13 +179,13 @@ async function saveResults(base, name, flow, threshold = undefined, usg = undefi
  * @returns {[number, number]} The median CPU and memory usage pair
 */
 function computeMedianUsage(usage) {
-    const [maxCpu, maxMem, normalCpuMem] = normalize(usage.map(s =>
+    const [maxCpu, maxMem, nCpuMem] = normalize(usage.map(s =>
         [+s.split(';')[2], +s.split(';')[1].replace(' K', '')]))
 
-    const medianCpu = median(normalCpuMem.map(t => t[0]))
-    const medianMem = median(normalCpuMem.map(t => t[1]))
+    const medianCpu = median(nCpuMem.map(t => t[0]))
+    const medianMem = median(nCpuMem.map(t => t[1]))
 
-    const nCpuMem = normalCpuMem.sort((a, b) => computeMedianDistance(a, medianCpu, medianMem) -
+    nCpuMem.sort((a, b) => computeMedianDistance(a, medianCpu, medianMem) -
         computeMedianDistance(b, medianCpu, medianMem))[0]
 
     // console.log(usage)
