@@ -2,14 +2,15 @@ import { readFileSync, readdirSync } from "fs";
 import { plot } from "nodeplotlib";
 
 const base = './archive'
-const dir = base + '/astro'
+const dir = base + '/todo'
 const sampleCount = JSON.parse(readFileSync(base + '/bench.json').toString()).files[0].groups[0].benchmarks[0].sampleCount
 // parseLHR(base)
-// calcMedian(dir)
+calcMedian(dir)
+// calcMedianAstro(base + '/astro')
 // parseMedian(dir)
-parseBench(base)
+// parseBench(base)
 // parseAverage(dir)
-// boxplot(dir)
+boxplot(dir)
 
 function boxplot(dir) {
     const data = []
@@ -154,7 +155,20 @@ function calcMedian(dir) {
         console.log('CPU: ', +cpu)
         console.groupEnd()
     })
+}
 
+function calcMedianAstro(dir) {
+    groupAndSlice(dir).forEach(([name, arr]) => {
+        // Median LHR
+        const metrics = Object.fromEntries(Object.entries(arr[0]).map(([key]) => [key, []]))
+        arr.map(o => Object.entries(o).forEach(([key, val]) => {
+            metrics[key].push(val);
+        }))
+
+        console.group(name)
+        computeMedianLHR(metrics).forEach(([name, median]) => console.log(`${name}:`, median))
+        console.groupEnd()
+    })
 }
 
 function parseBench(dir) {
@@ -186,7 +200,7 @@ function logMetrics(step) {
  */
 function getMetrics({ lhr }) {
     const obj = { name: lhr.finalDisplayedUrl.split('-')[1].split('.')[0].toUpperCase(), metrics: [] };
-
+// const obj = { name: lhr.finalDisplayedUrl.split('/').pop().toUpperCase(), metrics: [] };
     [
         'first-contentful-paint',
         // 'largest-contentful-paint',
