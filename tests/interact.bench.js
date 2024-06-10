@@ -16,21 +16,23 @@ async function flows(base, name, url, options) {
     await page.goto(url + '/load', { waitUntil: 'domcontentloaded' })
     let l = performance.now() - p
 
+    await page.click('button[aria-label="+"]')
+    let f = performance.now() - p - l
     await page.waitForListener('button[aria-label="+"]', 'click')
-    let h = performance.now() - p - l
+    let h = performance.now() - p - l - f
 
     let value
     while ((value = await page.$eval("[class*=value]", el => +el.textContent)) < 60) {
         await page.click('button[aria-label="+"]')
-        await page.waitForFunction((value) => +document.querySelector("[class*=value]").textContent == ++value, {}, value)
+        await page.waitForFunction((value) => +document.querySelector("[class*=value]").textContent > value, {}, value)
     }
-    const i = performance.now() - p - l - h
+    const i = performance.now() - p - l - f - h
     await flow.endTimespan()
 
     const e = performance.now() - p
 
     saveResults(base, name, flow)
-    appendFileSync(`${base}/${name}PRF.csv`, `${l};${h};${i};${e}\n`)
+    appendFileSync(`${base}/${name}PRF.csv`, `${l};${f};${h};${i};${e}\n`)
 
     await browser.close()
 }

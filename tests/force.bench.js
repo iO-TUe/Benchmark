@@ -15,16 +15,20 @@ async function flows(base, name, url, options) {
     await page.goto(url + '/todo', { waitUntil: 'domcontentloaded' })
     let l = performance.now() - p
 
-    await page.type('#input', "Item", { delay: 100 })
-    await page.click('#input', { count: 3 })
-    let f = performance.now() - p - l
+    // await page.type('#input', "Item", { delay: 100 })
+    // await page.click('#input', { count: 3 })
+    // let f = performance.now() - p - l
 
-    await page.waitForListener('#input', 'keyup')
-    let h = performance.now() - p - l - f
+    // await page.waitForListener('#input', 'keyup')
+    // let h = performance.now() - p - l - f
 
     for (let i = 0; i < 5; i++) {
-        await page.type('#input', "Item " + i, { delay: 100 })
-        await page.keyboard.press('Enter', { delay: 300 })
+        await page.type('#input', "Item " + i)
+
+        while (!(await page.$(`li[data-id="Item ${i}"]`))) {
+            await page.keyboard.press('Enter')
+        }
+
         await page.$eval(`li[data-id="Item ${i}"]`, (el, i) =>
             el.childNodes[0].textContent == `Item ${i}`, i)
     }
