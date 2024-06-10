@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "fs";
 import { plot } from "nodeplotlib";
 
 const base = './archive'
-const dir = base + '/todo'
+const dir = base + '/force'
 const sampleCount = JSON.parse(readFileSync(base + '/bench.json').toString()).files[0].groups[0].benchmarks[0].sampleCount
 // parseLHR(base)
 calcMedian(dir)
@@ -10,7 +10,7 @@ calcMedian(dir)
 // parseMedian(dir)
 // parseBench(base)
 // parseAverage(dir)
-boxplot(dir)
+// boxplot(dir)
 
 function boxplot(dir) {
     const data = []
@@ -141,18 +141,18 @@ function calcMedian(dir) {
         }))
 
         // Median System
-        const file = readdirSync(dir).filter(f => f.toUpperCase().startsWith(name) && f.endsWith('].csv'))[0]
-        const split = file.split('CPU - [')
-        split[1] = split[1].split('].csv')[0]
-        let [mem, cpu] = readFileSync(`${dir}/${file}`).toString().split('\n')
-            .map(l => l.split(';')).find((l) => l[3] == split[1]).slice(1, 3)
+        // const file = readdirSync(dir).filter(f => f.toUpperCase().startsWith(name) && f.endsWith('].csv'))[0]
+        // const split = file.split('CPU - [')
+        // split[1] = split[1].split('].csv')[0]
+        // let [mem, cpu] = readFileSync(`${dir}/${file}`).toString().split('\n')
+        //     .map(l => l.split(';')).find((l) => l[3] == split[1]).slice(1, 3)
 
         console.group(name)
 
         computeMedianLHR(metrics).forEach(([name, median]) => console.log(`${name}:`, median))
 
-        console.log('Memory: ', +mem.split('K')[0])
-        console.log('CPU: ', +cpu)
+        // console.log('Memory: ', +mem.split('K')[0])
+        // console.log('CPU: ', +cpu)
         console.groupEnd()
     })
 }

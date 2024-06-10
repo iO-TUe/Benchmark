@@ -25,8 +25,12 @@ async function flows(base, name, url, options) {
     for (let i = 0; i < 5; i++) {
         await page.type('#input', "Item " + i)
 
-        while (!(await page.$(`li[data-id="Item ${i}"]`))) {
-            await page.keyboard.press('Enter')
+        while (true) {
+            try {
+                await page.keyboard.press('Enter')
+                await page.waitForSelector(`li[data-id="Item ${i}"]`, { timeout: 100 })
+                break
+            } catch { }
         }
 
         await page.$eval(`li[data-id="Item ${i}"]`, (el, i) =>
@@ -41,7 +45,7 @@ async function flows(base, name, url, options) {
 
     let e = performance.now() - p
 
-    saveResults(base, name, flow)
+    saveResults(base, name, flow, 5)
     appendFileSync(`${base}/${name}PRF.csv`, `${l};${i};${e}\n`)
 
     await browser.close()
