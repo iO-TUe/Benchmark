@@ -1,16 +1,49 @@
 import { readFileSync, readdirSync } from "fs";
 import { plot } from "nodeplotlib";
-
 const base = './archive'
 const dir = base + '/force'
 const sampleCount = JSON.parse(readFileSync(base + '/bench.json').toString()).files[0].groups[0].benchmarks[0].sampleCount
 // parseLHR(base)
-calcMedian(dir)
+// calcMedian(dir)
 // calcMedianAstro(base + '/astro')
 // parseMedian(dir)
 // parseBench(base)
 // parseAverage(dir)
 // boxplot(dir)
+lineplot(dir)
+
+function lineplot(dir) {
+    let data = []
+    groupAndSlice(dir)[2][1].forEach((metrics) => {
+        data.push({
+            y: Object.values(metrics).map(val => val > 1000 ? val / 5 : val),
+            x: Object.keys(metrics).map(val => val == "mainthread-work-breakdown" ? 'MAIN (x5)' : val == 'interaction-to-next-paint' ? 'INP' : 'total-blocking-time' == val ? 'TBT' : 'BOOT'),
+            showlegend: false
+        })
+    })
+
+    data.push({
+        y: [184, 536, 2652 / 5, 472],
+        x: [
+            "INP",
+            "TBT",
+            "MAIN (x5)",
+            "BOOT",
+        ],
+        showlegend: false,
+        line: {
+            color: '#000',
+            width: 3
+        }
+
+    })
+
+    plot(data, {
+        // title: { text: dir.slice(dir.lastIndexOf('/') + 1) },
+        yaxis: { title: 'metric value in ms' }
+    })
+}
+
 
 function boxplot(dir) {
     const data = []
@@ -45,7 +78,8 @@ function boxplot(dir) {
 
     const cpuIdx = idx + 1
     const memIdx = idx + 2
-    readdirSync(dir).filter(f => f.endsWith('.csv')).forEach(file => {
+
+    readdirSync(dir).filter(f => f.endsWith('].csv')).forEach(file => {
         const mem = []
         const cpu = []
         const arr = readFileSync(`${dir}/${file}`).toString().split('\n')
@@ -82,7 +116,7 @@ function boxplot(dir) {
 
     data.forEach((md, idx) => plot(md, {
         // title: { text: dir.slice(dir.lastIndexOf('/') + 1) },
-        yaxis: { title: idx == memIdx ? 'size in KB' : 'duration in ms' },
+        yaxis: { title: idx == memIdx ? 'size in KB' : 'duration in ms', rangemode: 'tozero' },
         boxmode: 'group'
     }))
 }
@@ -141,18 +175,18 @@ function calcMedian(dir) {
         }))
 
         // Median System
-        // const file = readdirSync(dir).filter(f => f.toUpperCase().startsWith(name) && f.endsWith('].csv'))[0]
-        // const split = file.split('CPU - [')
-        // split[1] = split[1].split('].csv')[0]
-        // let [mem, cpu] = readFileSync(`${dir}/${file}`).toString().split('\n')
-        //     .map(l => l.split(';')).find((l) => l[3] == split[1]).slice(1, 3)
+        const file = readdirSync(dir).filter(f => f.toUpperCase().startsWith(name) && f.endsWith('].csv'))[0]
+        const split = file.split('CPU - [')
+        split[1] = split[1].split('].csv')[0]
+        let [mem, cpu] = readFileSync(`${dir}/${file}`).toString().split('\n')
+            .map(l => l.split(';')).find((l) => l[3] == split[1]).slice(1, 3)
 
         console.group(name)
 
         computeMedianLHR(metrics).forEach(([name, median]) => console.log(`${name}:`, median))
 
-        // console.log('Memory: ', +mem.split('K')[0])
-        // console.log('CPU: ', +cpu)
+        console.log('Memory: ', +mem.split('K')[0])
+        console.log('CPU: ', +cpu)
         console.groupEnd()
     })
 }
@@ -200,7 +234,7 @@ function logMetrics(step) {
  */
 function getMetrics({ lhr }) {
     const obj = { name: lhr.finalDisplayedUrl.split('-')[1].split('.')[0].toUpperCase(), metrics: [] };
-// const obj = { name: lhr.finalDisplayedUrl.split('/').pop().toUpperCase(), metrics: [] };
+    // const obj = { name: lhr.finalDisplayedUrl.split('/').pop().toUpperCase(), metrics: [] };
     [
         'first-contentful-paint',
         // 'largest-contentful-paint',
