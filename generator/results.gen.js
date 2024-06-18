@@ -14,20 +14,32 @@ lineplot(dir)
 
 function lineplot(dir) {
     let data = []
-    groupAndSlice(dir)[2][1].forEach((metrics) => {
-        data.push({
-            y: Object.values(metrics).map(val => val > 1000 ? val / 5 : val),
-            x: Object.keys(metrics).map(val => val == "mainthread-work-breakdown" ? 'MAIN (x5)' : val == 'interaction-to-next-paint' ? 'INP' : 'total-blocking-time' == val ? 'TBT' : 'BOOT'),
+    let max = {
+        "interaction-to-next-paint": 0,
+        "total-blocking-time": 0,
+        "mainthread-work-breakdown": 0,
+        "bootup-time": 0,
+    }
+    let arr = groupAndSlice(dir)[2][1]
+    arr.forEach(metrics => {
+        Object.entries(metrics).forEach(([metric, val]) => {
+            max[metric] = Math.max(max[metric], val)
+        })
+    });
+    arr.forEach((metrics) => {
+        data.push({//normalized. Remove map + devisions below for absolute values
+            y: Object.values(metrics).map((val, idx) => val / Object.values(max)[idx]),
+            x: Object.keys(metrics).map(val => val == "mainthread-work-breakdown" ? 'MAIN' : val == 'interaction-to-next-paint' ? 'INP' : 'total-blocking-time' == val ? 'TBT' : 'BOOT'),
             showlegend: false
         })
     })
 
     data.push({
-        y: [184, 536, 2652 / 5, 472],
+        y: [184 / 480, 536 / 686.94, 2652 / 3034.3, 472 / 580.33],
         x: [
             "INP",
             "TBT",
-            "MAIN (x5)",
+            "MAIN",
             "BOOT",
         ],
         showlegend: false,
